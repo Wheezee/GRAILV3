@@ -374,7 +374,21 @@ let currentTab = 0;
 const assessments = @json($assessments);
 let saveTimeout = null;
 
+// Function to get storage key for this page
+function getStorageKey() {
+  return `assessment_tab_${@json($classSection->subject->id)}_${@json($classSection->id)}_${@json($term)}_${@json($assessmentType->id)}`;
+}
 
+// Function to save current tab to localStorage
+function saveCurrentTab(index) {
+  localStorage.setItem(getStorageKey(), index.toString());
+}
+
+// Function to get saved tab from localStorage
+function getSavedTab() {
+  const saved = localStorage.getItem(getStorageKey());
+  return saved !== null ? parseInt(saved) : 0;
+}
 
 function switchTab(index) {
   // Check if there are assessments
@@ -404,6 +418,8 @@ function switchTab(index) {
   });
 
   currentTab = index;
+  // Save the current tab to localStorage
+  saveCurrentTab(index);
 }
 
 function saveGrade(studentId, assessmentId, score, isLate) {
@@ -677,6 +693,15 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
+
+  // Restore last active tab on page load
+  const savedTabIndex = getSavedTab();
+  if (savedTabIndex >= 0 && savedTabIndex < assessments.length) {
+    switchTab(savedTabIndex);
+  } else {
+    // Fallback to default if saved tab is invalid or not found
+    switchTab(0);
+  }
 });
 
 lucide.createIcons();
