@@ -96,6 +96,13 @@
             {{ $assessment->name }}
           </button>
           <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            @if($isAttendanceType)
+              <a href="{{ route('attendance.index', [$classSection->subject->id, $classSection->id, $term, $assessmentType->id, $assessment->id]) }}" 
+                 class="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors" 
+                 title="Manage Attendance">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+              </a>
+            @endif
             <button onclick="openEditAssessmentModal({{ $assessment->id }}, '{{ $assessment->name }}', {{ $assessment->max_score }}, {{ $assessment->passing_score ?? 'null' }}, '{{ $assessment->warning_score ?? 'null' }}', '{{ $assessment->due_date }}', '{{ $assessment->description }}', {{ $assessment->scores()->count() }})" 
                     class="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
                     title="Edit Assessment">

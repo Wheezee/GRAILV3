@@ -972,3 +972,11 @@ Route::prefix('api/annotations')->middleware('auth')->group(function () {
     Route::get('/student/{studentId}', [\App\Http\Controllers\AnnotationController::class, 'index'])->name('annotations.index');
     Route::delete('/{id}', [\App\Http\Controllers\AnnotationController::class, 'destroy'])->name('annotations.destroy');
 });
+
+// Attendance Routes
+Route::prefix('subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/attendance')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('/', [\App\Http\Controllers\AttendanceController::class, 'store'])->name('attendance.store');
+    Route::get('/data', [\App\Http\Controllers\AttendanceController::class, 'getAttendanceData'])->name('attendance.data');
+    Route::delete('/date', [\App\Http\Controllers\AttendanceController::class, 'deleteDate'])->name('attendance.delete-date');
+});

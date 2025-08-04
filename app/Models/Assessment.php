@@ -57,4 +57,77 @@ class Assessment extends Model
     {
         return $this->assessmentType->subject;
     }
+
+    /**
+     * Check if this assessment is an attendance assessment
+     */
+    public function isAttendanceAssessment(): bool
+    {
+        return $this->assessmentType->name === 'Attendance';
+    }
+
+    /**
+     * Get attendance records for this assessment
+     */
+    public function attendanceRecords()
+    {
+        return $this->hasMany(AttendanceRecord::class);
+    }
+
+    /**
+     * Get attendance records for a specific student
+     */
+    public function getStudentAttendanceRecords($studentId)
+    {
+        return $this->attendanceRecords()->where('student_id', $studentId)->get();
+    }
+
+    /**
+     * Calculate attendance score for a student
+     */
+    public function calculateAttendanceScore($studentId): ?float
+    {
+        if (!$this->isAttendanceAssessment()) {
+            return null;
+        }
+
+        $records = $this->getStudentAttendanceRecords($studentId);
+        if ($records->isEmpty()) {
+            return null;
+        }
+
+        $totalDays = $records->count();
+        $presentDays = $records->where('status', 'present')->count();
+        $lateDays = $records->where('status', 'late')->count();
+
+        // Calculate percentage: (present + late) / total * 100
+        $attendancePercentage = (($presentDays + $lateDays) / $totalDays) * 100;
+        
+        return round($attendancePercentage, 2);
+    }
+
+    /**
+     * Get attendance statistics for this assessment
+     */
+    public function getAttendanceStats()
+    {
+        $records = $this->attendanceRecords;
+        $totalRecords = $records->count();
+        
+        if ($totalRecords === 0) {
+            return [
+                'total_days' => 0,
+                'present_count' => 0,
+                'absent_count' => 0,
+                'late_count' => 0,
+            ];
+        }
+
+        return [
+            'total_days' => $records->groupBy('date')->count(),
+            'present_count' => $records->where('status', 'present')->count(),
+            'absent_count' => $records->where('status', 'absent')->count(),
+            'late_count' => $records->where('status', 'late')->count(),
+        ];
+    }
 } 

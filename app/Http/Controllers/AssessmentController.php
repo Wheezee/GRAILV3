@@ -32,12 +32,36 @@ class AssessmentController extends Controller
 
         $students = $classSection->students;
 
+        // Check if this is an attendance assessment type
+        $isAttendanceType = $assessmentType->name === 'Attendance';
+
+        // Auto-create attendance assessment if it doesn't exist
+        if ($isAttendanceType && $assessments->isEmpty()) {
+            $assessment = $assessmentType->assessments()->create([
+                'name' => 'Attendance',
+                'max_score' => 100, // Will be calculated based on actual attendance days
+                'passing_score' => 75, // 75% attendance is considered passing
+                'warning_score' => 85, // 85% attendance triggers warning
+                'due_date' => null,
+                'description' => 'Attendance tracking for ' . ucfirst($term) . ' term',
+                'order' => 1,
+                'term' => $term,
+            ]);
+            
+            // Refresh the assessments collection
+            $assessments = $assessmentType->assessments()
+                ->where('term', $term)
+                ->orderBy('order')
+                ->get();
+        }
+
         return view('teacher.assessments.index', compact(
             'classSection',
             'assessmentType',
             'assessments',
             'students',
-            'term'
+            'term',
+            'isAttendanceType'
         ));
     }
 
