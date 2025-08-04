@@ -294,6 +294,23 @@
       <i data-lucide="clipboard-list" class="w-5 h-5"></i>
       Gradebook (All)
     </a>
+    @php
+      // Find the attendance assessment type for this term
+      $attendanceType = $classSectionModel->subject->assessmentTypes()
+          ->where('term', $term)
+          ->where('name', 'Attendance')
+          ->first();
+      
+      // Get the first attendance assessment if it exists
+      $attendanceAssessment = $attendanceType ? $attendanceType->assessments()->where('term', $term)->first() : null;
+    @endphp
+    
+    @if($attendanceType && $attendanceAssessment)
+      <a href="{{ route('attendance.index', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id, 'term' => $term, 'assessmentType' => $attendanceType->id, 'assessment' => $attendanceAssessment->id]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
+        <i data-lucide="calendar" class="w-5 h-5"></i>
+        Attendance
+      </a>
+    @endif
     <button id="showAnalyticsBtn" onclick="openAnalyticsModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
       <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
       Analytics
@@ -315,6 +332,9 @@
   @if($assessmentTypes->count() > 0)
     <div class="grid gap-4 w-full" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
       @foreach($assessmentTypes as $index => $assessmentType)
+        @if($assessmentType->name === 'Attendance')
+          @continue
+        @endif
         @php
           $colorIndex = $index % count($colors);
           $color = $colors[$colorIndex];
