@@ -272,15 +272,22 @@ function closeAttendanceForm() {
 
 async function loadAttendanceData(dateString) {
     try {
+        console.log('Loading attendance data for date:', dateString);
         const response = await fetch(`{{ route('attendance.data', [$subject->id, $classSection->id, $term, $assessment->assessmentType->id, $assessment->id]) }}?date=${dateString}`);
         const data = await response.json();
+        
+        console.log('Received attendance data:', data);
         
         // Pre-fill form with existing data
         Object.keys(data).forEach(studentId => {
             const status = data[studentId].status;
+            console.log(`Setting student ${studentId} to ${status}`);
             const radioButton = document.querySelector(`input[name="status_${studentId}"][value="${status}"]`);
             if (radioButton) {
                 radioButton.checked = true;
+                console.log(`Radio button found and set for student ${studentId}`);
+            } else {
+                console.log(`Radio button not found for student ${studentId}, status: ${status}`);
             }
         });
     } catch (error) {

@@ -177,7 +177,7 @@ class AttendanceController extends Controller
         foreach ($students as $student) {
             $record = $assessment->attendanceRecords()
                 ->where('student_id', $student->id)
-                ->where('date', $request->date)
+                ->whereDate('date', $request->date)
                 ->first();
 
             $attendanceData[$student->id] = [
