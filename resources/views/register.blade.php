@@ -226,12 +226,7 @@
             <label for="email" class="form-label">Email address</label>
             <input id="email" type="email" name="email" required class="form-input" placeholder="Enter your email">
 
-            <label for="user_type" class="form-label">Role</label>
-            <select id="user_type" name="user_type" required class="form-select">
-                <option value="">Select your role</option>
-                <option value="teacher">Teacher</option>
-                <option value="department_head">Department Head</option>
-            </select>
+            <input type="hidden" name="user_type" value="teacher">
 
             <label for="password" class="form-label">Password</label>
             <input id="password" type="password" name="password" required class="form-input" placeholder="Enter your password">
@@ -241,6 +236,8 @@
 
             <button type="submit" class="register-btn">Create Account</button>
         </form>
+
+        <!--
         
         <div class="divider">or</div>
         
@@ -253,7 +250,7 @@
             </svg>
             Continue with Google
         </a>
-        
+        -->
         <div class="register-link">
             Already have an account?
             <a href="{{ route('login') }}">Sign in</a>
