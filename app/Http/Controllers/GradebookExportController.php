@@ -158,7 +158,9 @@ class GradebookExportController extends Controller
             foreach ($midtermAssessmentTypes as $type) {
                 $count = $assessments['midterm'][$type->id]['assessments']->count() ?: 1;
                 $sheet->setCellValue(Coordinate::stringFromColumnIndex($col) . '2', $type->name . ' (Weight: ' . $type->weight . '%)');
-                $sheet->mergeCells(Coordinate::stringFromColumnIndex($col) . '2:' . Coordinate::stringFromColumnIndex($col + $count - 1) . '2');
+                if ($count > 1) {
+                    $sheet->mergeCells(Coordinate::stringFromColumnIndex($col) . '2:' . Coordinate::stringFromColumnIndex($col + $count - 1) . '2');
+                }
                 foreach ($assessments['midterm'][$type->id]['assessments'] as $assessment) {
                     $sheet->setCellValue(Coordinate::stringFromColumnIndex($col) . '3', $assessment->name . ' (Max: ' . $assessment->max_score . ')');
                     $col++;
@@ -169,9 +171,11 @@ class GradebookExportController extends Controller
                 }
             }
             $midtermEndCol = $col - 1;
-            if ($midtermEndCol >= $midtermStartCol) {
+            if ($midtermEndCol >= $midtermStartCol && $midtermEndCol > $midtermStartCol) {
                 $sheet->setCellValue(Coordinate::stringFromColumnIndex($midtermStartCol) . '1', 'Midterm');
                 $sheet->mergeCells(Coordinate::stringFromColumnIndex($midtermStartCol) . '1:' . Coordinate::stringFromColumnIndex($midtermEndCol) . '1');
+            } elseif ($midtermEndCol === $midtermStartCol) {
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($midtermStartCol) . '1', 'Midterm');
             }
 
             // Final section
@@ -179,7 +183,9 @@ class GradebookExportController extends Controller
             foreach ($finalAssessmentTypes as $type) {
                 $count = $assessments['final'][$type->id]['assessments']->count() ?: 1;
                 $sheet->setCellValue(Coordinate::stringFromColumnIndex($col) . '2', $type->name . ' (Weight: ' . $type->weight . '%)');
-                $sheet->mergeCells(Coordinate::stringFromColumnIndex($col) . '2:' . Coordinate::stringFromColumnIndex($col + $count - 1) . '2');
+                if ($count > 1) {
+                    $sheet->mergeCells(Coordinate::stringFromColumnIndex($col) . '2:' . Coordinate::stringFromColumnIndex($col + $count - 1) . '2');
+                }
                 foreach ($assessments['final'][$type->id]['assessments'] as $assessment) {
                     $sheet->setCellValue(Coordinate::stringFromColumnIndex($col) . '3', $assessment->name . ' (Max: ' . $assessment->max_score . ')');
                     $col++;
@@ -190,9 +196,11 @@ class GradebookExportController extends Controller
                 }
             }
             $finalEndCol = $col - 1;
-            if ($finalEndCol >= $finalStartCol) {
+            if ($finalEndCol >= $finalStartCol && $finalEndCol > $finalStartCol) {
                 $sheet->setCellValue(Coordinate::stringFromColumnIndex($finalStartCol) . '1', 'Final');
                 $sheet->mergeCells(Coordinate::stringFromColumnIndex($finalStartCol) . '1:' . Coordinate::stringFromColumnIndex($finalEndCol) . '1');
+            } elseif ($finalEndCol === $finalStartCol) {
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($finalStartCol) . '1', 'Final');
             }
 
             // Grade columns

@@ -2,7 +2,7 @@
 <html lang="en" class="">
 <head>
     <meta charset="UTF-8">
-    <title>GRAIL</title>
+    <title>SmartGrade+</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -59,7 +59,7 @@
       <button id="toggleSidebar" class="text-gray-700 dark:text-gray-100 hover:text-red-600 dark:hover:text-evsu focus:outline-none">
         <i data-lucide="menu" class="w-6 h-6"></i>
       </button>
-      <h1 class="text-xl font-bold tracking-wide text-red-700 dark:text-evsu">GRAIL</h1>
+      <h1 class="text-xl font-bold tracking-wide text-red-700 dark:text-evsu">SmartGrade+</h1>
       <button id="darkModeToggle" class="ml-4 text-gray-700 dark:text-gray-100 hover:text-red-600 dark:hover:text-evsu focus:outline-none" aria-label="Toggle dark mode" onclick="toggleDarkMode()">
         <i id="darkModeIcon" data-lucide="sun" class="w-6 h-6"></i>
       </button>

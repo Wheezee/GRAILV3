@@ -336,6 +336,8 @@
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">Step 2: Assessment Type Builder</h2>
           
+
+
           <!-- Grading Structure Selection -->
           <div class="mb-8">
             <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-4 text-center">Grading Structure</h3>
@@ -371,6 +373,12 @@
                   </div>
                 </div>
               </div>
+            </div>          <!-- Autofill Checkbox -->
+            <div class="flex items-center mb-6">
+              <input type="checkbox" id="autofillAssessments" class="mr-2" onchange="toggleAutofillAssessments()">
+              <label for="autofillAssessments" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Add Attendance for Midterm and Final
+              </label>
             </div>
           </div>
 
@@ -1045,6 +1053,13 @@ function saveSubject() {
   csrfToken.value = '{{ csrf_token() }}';
   form.appendChild(csrfToken);
   
+  // Add method override for PUT
+  const methodField = document.createElement('input');
+  methodField.type = 'hidden';
+  methodField.name = '_method';
+  methodField.value = 'PUT';
+  form.appendChild(methodField);
+  
   // Add form data
   const formData = {
     'code': document.getElementById('edit_code').value,
@@ -1512,5 +1527,61 @@ document.addEventListener('keydown', function(e) {
     closeCreateModal();
   }
 });
+
+function toggleAutofillAssessments() {
+  const checked = document.getElementById('autofillAssessments').checked;
+  if (checked) {
+    autofillDefaultAssessments();
+    // Disable add/remove buttons
+    document.querySelectorAll('.add-assessment-btn').forEach(btn => btn.disabled = true);
+    document.querySelectorAll('.remove-assessment-btn').forEach(btn => btn.disabled = true);
+  } else {
+    // Clear and enable manual editing
+    createAssessmentTypes.midterm = [];
+    createAssessmentTypes.final = [];
+    document.getElementById('createMidtermAssessmentTypes').innerHTML = '';
+    document.getElementById('createFinalAssessmentTypes').innerHTML = '';
+    createUpdateProgressBars();
+    document.querySelectorAll('.add-assessment-btn').forEach(btn => btn.disabled = false);
+    document.querySelectorAll('.remove-assessment-btn').forEach(btn => btn.disabled = false);
+  }
+}
+
+function autofillDefaultAssessments() {
+  // Autofill both midterm and final with 'Attendance' at 100%
+  const defaultMidterms = [
+    { name: 'Attendance', weight: 100 }
+  ];
+  const defaultFinals = [
+    { name: 'Attendance', weight: 100 }
+  ];
+
+  // Clear current
+  createAssessmentTypes.midterm = [];
+  createAssessmentTypes.final = [];
+  document.getElementById('createMidtermAssessmentTypes').innerHTML = '';
+  document.getElementById('createFinalAssessmentTypes').innerHTML = '';
+
+  // Add defaults
+  defaultMidterms.forEach(type => {
+    createAddAssessmentType('midterm');
+    const last = createAssessmentTypes.midterm[createAssessmentTypes.midterm.length - 1];
+    last.name = type.name;
+    last.weight = type.weight;
+    document.getElementById(`name_${last.id}`).value = type.name;
+    document.getElementById(`weight_${last.id}`).value = type.weight;
+  });
+
+  defaultFinals.forEach(type => {
+    createAddAssessmentType('final');
+    const last = createAssessmentTypes.final[createAssessmentTypes.final.length - 1];
+    last.name = type.name;
+    last.weight = type.weight;
+    document.getElementById(`name_${last.id}`).value = type.name;
+    document.getElementById(`weight_${last.id}`).value = type.weight;
+  });
+
+  createUpdateProgressBars();
+}
 </script>
 @endsection 

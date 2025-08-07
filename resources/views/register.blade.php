@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GRAIL Register</title>
+    <title>SmartGrade+ Register</title>
     <style>
         html, body {
             height: 100%;
@@ -213,7 +213,7 @@
 </head>
 <body>
     <div class="register-container">
-        <div class="register-title">GRAIL</div>
+        <div class="register-title">SmartGrade+</div>
         <div class="register-subtitle">Create your account</div>
         @if(session('error'))
             <div class="form-error">{{ session('error') }}</div>

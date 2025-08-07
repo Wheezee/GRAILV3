@@ -367,7 +367,11 @@ Route::get('/subjects/{subject}/classes/{classSection}/{term}/grading', function
     // Calculate grades and metrics for each student
     $studentGrades = [];
     $studentMetrics = [];
+    $studentAbsences = [];
     $metricsService = new \App\Services\StudentMetricsService();
+    
+    // Check if this subject has attendance assessment
+    $hasAttendance = $subjectModel->hasAttendanceAssessment();
     
     foreach ($enrolledStudents as $student) {
         // Get assessment types for this subject
@@ -466,9 +470,15 @@ Route::get('/subjects/{subject}/classes/{classSection}/{term}/grading', function
         // Calculate ML metrics for this student (always use all terms)
         $metrics = $metricsService->calculateStudentMetrics($student->id, $classSectionModel->id, null);
         $studentMetrics[$student->id] = $metrics;
+        
+        // Calculate absence data if subject has attendance
+        if ($hasAttendance) {
+            $absenceData = $subjectModel->getStudentTotalAbsences($student->id, $term);
+            $studentAbsences[$student->id] = $absenceData;
+        }
     }
     
-    return view('teacher.grading-system', compact('classSectionModel', 'enrolledStudents', 'term', 'studentGrades', 'studentMetrics'));
+    return view('teacher.grading-system', compact('classSectionModel', 'enrolledStudents', 'term', 'studentGrades', 'studentMetrics', 'studentAbsences', 'hasAttendance'));
 })->name('grading.system')->middleware('auth');
 
 Route::post('/subjects/{subject}/classes/{classSection}/{term}/grading', function ($subject, $classSection, $term, Request $request) {

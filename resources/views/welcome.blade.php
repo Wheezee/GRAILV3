@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GRAIL Login</title>
+    <title>SmartGrade+ Login</title>
             <style>
         html, body {
             height: 100%;
@@ -193,7 +193,7 @@
 </head>
 <body>
     <div class="login-container">
-        <div class="login-title">GRAIL</div>
+        <div class="login-title">SmartGrade+</div>
         <div class="login-subtitle">Sign in to your account</div>
         @if(session('error'))
             <div class="form-error">{{ session('error') }}</div>

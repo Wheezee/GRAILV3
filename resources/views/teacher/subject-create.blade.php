@@ -74,6 +74,14 @@
   <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
     <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">Step 2: Assessment Type Builder</h2>
     
+    <!-- Autofill Checkbox -->
+    <div class="flex items-center mb-6">
+      <input type="checkbox" id="autofillAssessments" class="mr-2" onchange="toggleAutofillAssessments()">
+      <label for="autofillAssessments" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        Autofill default assessment types for Midterm and Final
+      </label>
+    </div>
+    
     <!-- Grading Structure Selection -->
     <div class="mb-8">
       <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-4 text-center">Grading Structure</h3>
@@ -121,7 +129,7 @@
       </div>
       
       <div class="text-center mt-4">
-        <button type="button" onclick="addAssessmentType('midterm')" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+        <button type="button" onclick="addAssessmentType('midterm')" class="add-assessment-btn inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
           <i data-lucide="plus" class="w-4 h-4"></i>
           Add Assessment Type
         </button>
@@ -150,7 +158,7 @@
       </div>
       
       <div class="text-center mt-4">
-        <button type="button" onclick="addAssessmentType('final')" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+        <button type="button" onclick="addAssessmentType('final')" class="add-assessment-btn inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
           <i data-lucide="plus" class="w-4 h-4"></i>
           Add Assessment Type
         </button>
@@ -336,7 +344,7 @@ function addAssessmentType(term) {
                oninput="updateAssessmentType('${typeId}', 'weight', this.value)"
                onkeypress="return event.charCode >= 48 && event.charCode <= 57">
       </div>
-      <button type="button" onclick="removeAssessmentType('${typeId}')" class="ml-2 text-red-600 hover:text-red-700">
+      <button type="button" onclick="removeAssessmentType('${typeId}')" class="remove-assessment-btn ml-2 text-red-600 hover:text-red-700">
         <i data-lucide="trash-2" class="w-4 h-4"></i>
       </button>
     </div>
@@ -538,5 +546,61 @@ document.getElementById('final_weight')?.addEventListener('input', function() {
   const midtermWeight = document.getElementById('midterm_weight');
   midtermWeight.value = 100 - this.value;
 });
+
+function toggleAutofillAssessments() {
+  const checked = document.getElementById('autofillAssessments').checked;
+  if (checked) {
+    autofillDefaultAssessments();
+    // Disable add/remove buttons
+    document.querySelectorAll('.add-assessment-btn').forEach(btn => btn.disabled = true);
+    document.querySelectorAll('.remove-assessment-btn').forEach(btn => btn.disabled = true);
+  } else {
+    // Clear and enable manual editing
+    assessmentTypes.midterm = [];
+    assessmentTypes.final = [];
+    document.getElementById('midtermAssessmentTypes').innerHTML = '';
+    document.getElementById('finalAssessmentTypes').innerHTML = '';
+    updateProgressBars();
+    document.querySelectorAll('.add-assessment-btn').forEach(btn => btn.disabled = false);
+    document.querySelectorAll('.remove-assessment-btn').forEach(btn => btn.disabled = false);
+  }
+}
+
+function autofillDefaultAssessments() {
+  // Example defaults, adjust as needed
+  const defaultMidterms = [
+    { name: 'Midterm Exam', weight: 100 }
+  ];
+  const defaultFinals = [
+    { name: 'Final Exam', weight: 100 }
+  ];
+
+  // Clear current
+  assessmentTypes.midterm = [];
+  assessmentTypes.final = [];
+  document.getElementById('midtermAssessmentTypes').innerHTML = '';
+  document.getElementById('finalAssessmentTypes').innerHTML = '';
+
+  // Add defaults
+  defaultMidterms.forEach(type => {
+    addAssessmentType('midterm');
+    const last = assessmentTypes.midterm[assessmentTypes.midterm.length - 1];
+    last.name = type.name;
+    last.weight = type.weight;
+    document.getElementById(`name_${last.id}`).value = type.name;
+    document.getElementById(`weight_${last.id}`).value = type.weight;
+  });
+
+  defaultFinals.forEach(type => {
+    addAssessmentType('final');
+    const last = assessmentTypes.final[assessmentTypes.final.length - 1];
+    last.name = type.name;
+    last.weight = type.weight;
+    document.getElementById(`name_${last.id}`).value = type.name;
+    document.getElementById(`weight_${last.id}`).value = type.weight;
+  });
+
+  updateProgressBars();
+}
 </script>
 @endsection 

@@ -130,4 +130,70 @@ class Assessment extends Model
             'late_count' => $records->where('status', 'late')->count(),
         ];
     }
+
+    /**
+     * Calculate the number of absences for a specific student
+     */
+    public function getStudentAbsenceCount($studentId): int
+    {
+        if (!$this->isAttendanceAssessment()) {
+            return 0;
+        }
+
+        return $this->attendanceRecords()
+            ->where('student_id', $studentId)
+            ->where('status', 'absent')
+            ->count();
+    }
+
+    /**
+     * Calculate the total number of attendance days for a specific student
+     */
+    public function getStudentTotalAttendanceDays($studentId): int
+    {
+        if (!$this->isAttendanceAssessment()) {
+            return 0;
+        }
+
+        return $this->attendanceRecords()
+            ->where('student_id', $studentId)
+            ->count();
+    }
+
+    /**
+     * Calculate absences for a student based on their attendance score
+     */
+    public function getStudentAbsencesFromScore($studentId): ?array
+    {
+        if (!$this->isAttendanceAssessment()) {
+            return null;
+        }
+
+        // Get the student's attendance score
+        $score = $this->scores()->where('student_id', $studentId)->first();
+        
+        if (!$score || $score->percentage_score === null) {
+            return null;
+        }
+
+        // Get total attendance days for this specific student
+        $totalDays = $this->attendanceRecords()
+            ->where('student_id', $studentId)
+            ->count();
+
+        if ($totalDays === 0) {
+            return null;
+        }
+
+        // Calculate present days based on attendance percentage
+        $presentDays = round(($score->percentage_score / 100) * $totalDays);
+        $absences = $totalDays - $presentDays;
+
+        return [
+            'absences' => $absences,
+            'total_days' => $totalDays,
+            'attendance_percentage' => $score->percentage_score,
+            'present_days' => $presentDays
+        ];
+    }
 } 

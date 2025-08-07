@@ -150,35 +150,13 @@
           </label>
           <select id="custom_formula" name="custom_formula" 
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500">
-            <option value="inverse_linear">Inverse Linear (95% = 1.0, 75% = 3.0)</option>
+            <option value="inverse_linear">Inverse Linear (100% = 1.0, 75% = 3.0)</option>
             <option value="exponential">Exponential Curve</option>
             <option value="step">Step-Based Grading</option>
           </select>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose the formula for custom grading</p>
         </div>
         
-        <!-- Preview -->
-        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-          <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Grade Preview</h4>
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            <div class="flex justify-between">
-              <span class="text-gray-600 dark:text-gray-400">95% →</span>
-              <span id="preview_95" class="font-medium">1.00</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600 dark:text-gray-400">85% →</span>
-              <span id="preview_85" class="font-medium">2.00</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600 dark:text-gray-400">75% →</span>
-              <span id="preview_75" class="font-medium">3.00</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600 dark:text-gray-400">65% →</span>
-              <span id="preview_65" class="font-medium">4.00</span>
-            </div>
-          </div>
-        </div>
       </div>
       
       <div class="flex gap-3 mt-6">
@@ -580,32 +558,39 @@ function calculatePassFailGrade(percentage, params) {
   }
 }
 
+function getBestGrade(maxScore) {
+  // 100% → 1.0, 95% → 1.1, 90% → 1.2, etc.
+  // Adjust the formula as needed for your scale
+  return 2.0 - (maxScore / 100);
+}
+
 function calculateCustomGrade(percentage, params) {
   const formula = params.custom_formula || 'inverse_linear';
   
   switch (formula) {
-    case 'inverse_linear':
-      // Linear scale: 95% = 1.1, 75% = 3.0
-      // Cap percentage at max_score (95%)
-      const effectivePercentage = Math.min(percentage, params.max_score || 95);
-      
-      if (effectivePercentage >= (params.passing_score || 75)) {
-        // Above passing: linear scale from passing score to max score
-        const grade = (params.passing_grade || 3.0) - ((effectivePercentage - (params.passing_score || 75)) / ((params.max_score || 95) - (params.passing_score || 75))) * ((params.passing_grade || 3.0) - 1.1);
+    case 'inverse_linear': {
+      // Linear scale: max_score% = best grade, passing_score = passing grade
+      const maxScore = params.max_score || 95;
+      const passingScore = params.passing_score || 75;
+      const passingGrade = params.passing_grade || 3.0;
+      const bestGrade = getBestGrade(maxScore);
+      // Cap percentage at max_score
+      const effectivePercentage = Math.min(percentage, maxScore);
+      if (effectivePercentage >= passingScore) {
+        const grade = passingGrade - ((effectivePercentage - passingScore) / (maxScore - passingScore)) * (passingGrade - bestGrade);
         return grade.toFixed(2);
       } else {
         // Below passing: linear scale to 5.0
-        const grade = (params.passing_grade || 3.0) + (((params.passing_score || 75) - effectivePercentage) / (params.passing_score || 75)) * (5.0 - (params.passing_grade || 3.0));
+        const grade = passingGrade + ((passingScore - effectivePercentage) / passingScore) * (5.0 - passingGrade);
         return grade.toFixed(2);
       }
-    
+    }
     case 'exponential':
       const passingScore = params.passing_score || 75;
       const passingGrade = params.passing_grade || 3.0;
       const normalized = (percentage - passingScore) / (100 - passingScore);
       const grade = passingGrade - (normalized * (passingGrade - 1.0));
       return Math.max(1.0, grade).toFixed(2);
-    
     case 'step':
       if (percentage >= 97) return '1.00';
       if (percentage >= 94) return '1.25';
@@ -617,7 +602,6 @@ function calculateCustomGrade(percentage, params) {
       if (percentage >= 76) return '2.75';
       if (percentage >= (params.passing_score || 75)) return (params.passing_grade || 3.0).toFixed(2);
       return '5.00';
-    
     default:
       return calculateLinearGrade(percentage, params);
   }
@@ -690,7 +674,7 @@ function updateSettingsSummary() {
 // Modal functions
 function openGradingModal() {
   document.getElementById('gradingModal').classList.remove('hidden');
-  updatePreview();
+  updateGradeDisplay(); // No longer need updatePreview
 }
 
 function closeGradingModal() {
@@ -750,21 +734,7 @@ function saveSettingsToBackend() {
   });
 }
 
-function updatePreview() {
-  const gradingMode = document.getElementById('grading_mode').value;
-  const tempParams = {
-    max_score: parseFloat(document.getElementById('max_score').value) || 95,
-    passing_score: parseFloat(document.getElementById('passing_score').value) || 75,
-    passing_grade: 3.0, // Hardcoded passing grade
-    custom_formula: document.getElementById('custom_formula').value || 'inverse_linear'
-  };
-  
-  // Update preview values
-  document.getElementById('preview_95').textContent = convertGrade(95, gradingMode, tempParams);
-  document.getElementById('preview_85').textContent = convertGrade(85, gradingMode, tempParams);
-  document.getElementById('preview_75').textContent = convertGrade(75, gradingMode, tempParams);
-  document.getElementById('preview_65').textContent = convertGrade(65, gradingMode, tempParams);
-}
+// Remove updatePreview function and all calls to it
 
 function showNotification(message, type = 'info') {
   // Create notification element
@@ -861,14 +831,14 @@ document.addEventListener('DOMContentLoaded', function() {
   formInputs.forEach(inputId => {
     const input = document.getElementById(inputId);
     if (input) {
-      input.addEventListener('input', updatePreview);
+      // input.addEventListener('input', updatePreview); // Removed updatePreview
     }
   });
   
   // Add event listener for custom formula dropdown
   const customFormulaSelect = document.getElementById('custom_formula');
   if (customFormulaSelect) {
-    customFormulaSelect.addEventListener('change', updatePreview);
+    // customFormulaSelect.addEventListener('change', updatePreview); // Removed updatePreview
   }
   
   // Load saved settings

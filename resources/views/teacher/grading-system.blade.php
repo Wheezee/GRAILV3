@@ -303,6 +303,21 @@
       
       // Get the first attendance assessment if it exists
       $attendanceAssessment = $attendanceType ? $attendanceType->assessments()->where('term', $term)->first() : null;
+      
+      // Auto-create attendance assessment if it doesn't exist
+      if ($attendanceType && !$attendanceAssessment) {
+          $attendanceAssessment = $attendanceType->assessments()->create([
+              'name' => 'Attendance',
+              'max_score' => 100, // Will be calculated based on actual attendance days
+              'passing_score' => 75, // 75% attendance is considered passing
+              'warning_score' => 85, // 85% attendance triggers warning
+              'due_date' => null,
+              'description' => 'Attendance tracking for ' . ucfirst($term) . ' term',
+              'order' => 1,
+              
+              'term' => $term,
+          ]);
+      }
     @endphp
     
     @if($attendanceType && $attendanceAssessment)
@@ -407,6 +422,9 @@
           </th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student ID</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sort-header" data-sort="name">Name <span class="sort-icon">⇅</span></th>
+          @if($hasAttendance)
+          <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sort-header" data-sort="absences">Absences <span class="sort-icon">⇅</span></th>
+          @endif
           <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sort-header" data-sort="grade">Estimated Grade <span class="sort-icon">⇅</span></th>
           <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sort-header" data-sort="risk">ML Risk <span class="sort-icon">⇅</span></th>
           <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
@@ -426,6 +444,32 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm student-name-cell text-gray-900 dark:text-gray-100" data-student-id="{{ $student->id }}">
                 {{ $student->first_name }} {{ $student->last_name }}
               </td>
+              @if($hasAttendance)
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                @php
+                  $absenceData = $studentAbsences[$student->id] ?? null;
+                  $absences = $absenceData['total_absences'] ?? 0;
+                  $totalDays = $absenceData['total_days'] ?? 0;
+                  $attendancePercentage = $totalDays > 0 ? (100 - (($absences / $totalDays) * 100)) : 0;
+                @endphp
+                <div class="flex flex-col items-center gap-1">
+                  @if($totalDays > 0)
+                    <div class="text-sm font-medium text-red-600 dark:text-red-400">{{ $absences }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">out of {{ $totalDays }} days</div>
+                    @if($absences > 0)
+                      <div class="text-xs text-red-500 font-medium">
+                        {{ number_format(($absences / $totalDays) * 100, 1) }}% absent
+                      </div>
+                    @endif
+                    <div class="text-xs text-green-600 dark:text-green-400 font-medium">
+                      {{ number_format($attendancePercentage, 1) }}% present
+                    </div>
+                  @else
+                    <span class="text-gray-400 text-sm">No attendance data</span>
+                  @endif
+                </div>
+              </td>
+              @endif
               <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                 @php
                   $studentGrade = $studentGrades[$student->id] ?? null;
@@ -2026,7 +2070,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   // --- SORT ---
-  let sortDirection = { name: 1, grade: 1, risk: 1 };
+  let sortDirection = { name: 1, grade: 1, risk: 1, absences: 1 };
   document.querySelectorAll('.sort-header').forEach(header => {
     header.addEventListener('click', function() {
       const sortKey = this.getAttribute('data-sort');
@@ -2052,6 +2096,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return 0;
           }
           return (riskScore(a) - riskScore(b)) * sortDirection.risk;
+        } else if (sortKey === 'absences') {
+          // Extract absence count from the absence cell
+          function absenceCount(row) {
+            // Find the absence cell by looking for the red absence number
+            const absenceCell = row.querySelector('td .text-red-600, td .text-red-400');
+            if (!absenceCell) return 0;
+            const text = absenceCell.textContent.trim();
+            const match = text.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 0;
+          }
+          return (absenceCount(a) - absenceCount(b)) * sortDirection.absences;
         }
         return 0;
       });
