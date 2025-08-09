@@ -15,7 +15,9 @@ class StudentController extends Controller
         $subject = Subject::findOrFail($subjectId);
         $classSection = ClassSection::where('id', $classSectionId)->where('subject_id', $subjectId)->firstOrFail();
         $student = $classSection->students()->where('students.id', $studentId)->firstOrFail();
-        $assessmentTypes = $subject->assessmentTypes()->where('term', $term)->with(['assessments.scores'])->orderBy('order')->get();
+        $assessmentTypes = $subject->assessmentTypes()->where('term', $term)->with(['assessments' => function($query) use ($term) {
+            $query->where('term', $term);
+        }, 'assessments.scores'])->orderBy('order')->get();
         
         // Calculate comprehensive analytics
         $analytics = $this->calculateStudentAnalytics($student, $assessmentTypes, $term);
@@ -41,7 +43,9 @@ class StudentController extends Controller
         foreach ($students as $student) {
             // Calculate grade averages for display
             $grade = $student->assessmentScores()
-                ->where('term', $term)
+                ->whereHas('assessment', function($query) use ($term) {
+                    $query->where('term', $term);
+                })
                 ->get()
                 ->map(function($score) {
                     if ($score->assessment && $score->assessment->max_score > 0 && $score->score !== null) {
@@ -225,9 +229,11 @@ class StudentController extends Controller
             ];
         }
         
-        // Low performance for any assessment type (modular)
+        // Low performance for any assessment type (modular) - only for types with actual data
         foreach ($typeStats as $typeName => $stats) {
-            if (isset($stats['average_percentage']) && $stats['average_percentage'] < 60) {
+            // Only create risk factors for assessment types that have assessments in this term
+            if (isset($stats['total_assessments']) && $stats['total_assessments'] > 0 && 
+                isset($stats['average_percentage']) && $stats['average_percentage'] < 60) {
                 $factors[] = [
                     'type' => 'Low ' . $typeName . ' Performance',
                     'description' => $typeName . ' scores are consistently low.',

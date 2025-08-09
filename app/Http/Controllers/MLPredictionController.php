@@ -101,10 +101,10 @@ class MLPredictionController extends Controller
     /**
      * Get detailed student metrics
      */
-    public function getStudentMetrics($studentId, $classSectionId): JsonResponse
+    public function getStudentMetrics($studentId, $classSectionId, $term = null): JsonResponse
     {
         try {
-            $breakdown = $this->metricsService->getDetailedBreakdown($studentId, $classSectionId);
+            $breakdown = $this->metricsService->getDetailedBreakdown($studentId, $classSectionId, $term);
             
             if ($breakdown) {
                 return response()->json([
@@ -122,6 +122,46 @@ class MLPredictionController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to get student metrics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get risk predictions for a student based on term-specific metrics
+     */
+    public function getStudentRiskPredictionsByTerm($studentId, $classSectionId, $term): JsonResponse
+    {
+        try {
+            $metrics = $this->metricsService->calculateStudentMetrics($studentId, $classSectionId, $term);
+            
+            if (!$metrics) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Student not found or no data available'
+                ], 404);
+            }
+
+            // Prepare the data for ML prediction
+            $studentData = [
+                'avg_score_pct' => $metrics['avg_score_pct'] ?? 0,
+                'variation_score_pct' => $metrics['variation_score_pct'] ?? 0,
+                'late_submission_pct' => $metrics['late_submission_pct'] ?? 0,
+                'missed_submission_pct' => $metrics['missed_submission_pct'] ?? 0,
+            ];
+
+            $predictions = $this->mlService->getRiskPredictions($studentData);
+
+            return response()->json([
+                'success' => true,
+                'predictions' => $predictions,
+                'metrics' => $metrics,
+                'term' => $term
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get student risk predictions: ' . $e->getMessage()
             ], 500);
         }
     }

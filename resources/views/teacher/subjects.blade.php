@@ -374,7 +374,7 @@
                 </div>
               </div>
             </div>          <!-- Autofill Checkbox -->
-            <div class="flex items-center mb-6">
+            <div class="flex items-center justify-center mb-6">
               <input type="checkbox" id="autofillAssessments" class="mr-2" onchange="toggleAutofillAssessments()">
               <label for="autofillAssessments" class="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Add Attendance for Midterm and Final

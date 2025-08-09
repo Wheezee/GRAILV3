@@ -121,39 +121,41 @@
       <div>
                  <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-2">File Format:</h4>
         <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-sm">
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="border-b border-gray-200 dark:border-gray-600">
-                <th class="text-left py-1">Column A</th>
-                <th class="text-left py-1">Column B</th>
-                <th class="text-left py-1">Column C</th>
-                <th class="text-left py-1">Column D</th>
-                <th class="text-left py-1">Column E</th>
-                <th class="text-left py-1">Column F</th>
-                <th class="text-left py-1">Column G</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="border-b border-gray-200 dark:border-gray-600">
-                <td class="py-1 font-medium">Student ID</td>
-                <td class="py-1 font-medium">Fullname</td>
-                <td class="py-1 font-medium">Major</td>
-                <td class="py-1 font-medium">Year Level</td>
-                <td class="py-1 font-medium">Registered</td>
-                <td class="py-1 font-medium">Gender</td>
-                <td class="py-1 font-medium">Grade</td>
-              </tr>
-              <tr>
-                <td class="py-1">2019-35557</td>
-                <td class="py-1">Carreon, Benjamin N.</td>
-                <td class="py-1">BSIT</td>
-                <td class="py-1">3</td>
-                <td class="py-1">1</td>
-                <td class="py-1">M</td>
-                <td class="py-1">1.9</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs min-w-[600px]">
+              <thead>
+                <tr class="border-b border-gray-200 dark:border-gray-600">
+                  <th class="text-left py-1 px-1 sm:px-2">Column A</th>
+                  <th class="text-left py-1 px-1 sm:px-2">Column B</th>
+                  <th class="text-left py-1 px-1 sm:px-2">Column C</th>
+                  <th class="text-left py-1 px-1 sm:px-2">Column D</th>
+                  <th class="text-left py-1 px-1 sm:px-2">Column E</th>
+                  <th class="text-left py-1 px-1 sm:px-2">Column F</th>
+                  <th class="text-left py-1 px-1 sm:px-2">Column G</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-gray-200 dark:border-gray-600">
+                  <td class="py-1 px-1 sm:px-2 font-medium">Student ID</td>
+                  <td class="py-1 px-1 sm:px-2 font-medium">Fullname</td>
+                  <td class="py-1 px-1 sm:px-2 font-medium">Major</td>
+                  <td class="py-1 px-1 sm:px-2 font-medium">Year Level</td>
+                  <td class="py-1 px-1 sm:px-2 font-medium">Registered</td>
+                  <td class="py-1 px-1 sm:px-2 font-medium">Gender</td>
+                  <td class="py-1 px-1 sm:px-2 font-medium">Grade</td>
+                </tr>
+                <tr>
+                  <td class="py-1 px-1 sm:px-2">2019-35557</td>
+                  <td class="py-1 px-1 sm:px-2">Carreon, Benjamin N.</td>
+                  <td class="py-1 px-1 sm:px-2">BSIT</td>
+                  <td class="py-1 px-1 sm:px-2">3</td>
+                  <td class="py-1 px-1 sm:px-2">1</td>
+                  <td class="py-1 px-1 sm:px-2">M</td>
+                  <td class="py-1 px-1 sm:px-2">1.9</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

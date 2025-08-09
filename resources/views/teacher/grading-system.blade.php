@@ -276,23 +276,26 @@
 @endif
 
 <!-- Header Section -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
-  <div>
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $classSectionModel->section }}</h2>
-    <p class="text-gray-600 dark:text-gray-400 mt-1">{{ $classSectionModel->subject->code }} - {{ $classSectionModel->subject->title }}</p>
+<div class="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-8 gap-4">
+  <div class="flex-shrink-0">
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $classSectionModel->section }}</h2>
+    <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">{{ $classSectionModel->subject->code }} - {{ $classSectionModel->subject->title }}</p>
   </div>
-  <div class="flex gap-2">
-    <button onclick="openEditSubjectModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
-      <i data-lucide="edit" class="w-5 h-5"></i>
-      Edit Subject
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:justify-end gap-2 w-full lg:w-auto">
+    <button onclick="openEditSubjectModal()" class="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
+      <i data-lucide="edit" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+      <span class="hidden sm:inline">Edit Subject</span>
+      <span class="sm:hidden">Edit</span>
     </button>
-    <a href="{{ route('batch-enrollment.form', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
-      <i data-lucide="upload" class="w-5 h-5"></i>
-      Batch Enroll
+    <a href="{{ route('batch-enrollment.form', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id]) }}" class="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
+      <i data-lucide="upload" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+      <span class="hidden sm:inline">Batch Enroll</span>
+      <span class="sm:hidden">Enroll</span>
     </a>
-    <a href="{{ route('gradebook.all', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id]) }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
-      <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-      Gradebook (All)
+    <a href="{{ route('gradebook.all', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id]) }}" class="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
+      <i data-lucide="clipboard-list" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+      <span class="hidden sm:inline">Gradebook (All)</span>
+      <span class="sm:hidden">Grades</span>
     </a>
     @php
       // Find the attendance assessment type for this term
@@ -321,14 +324,16 @@
     @endphp
     
     @if($attendanceType && $attendanceAssessment)
-      <a href="{{ route('attendance.index', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id, 'term' => $term, 'assessmentType' => $attendanceType->id, 'assessment' => $attendanceAssessment->id]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
-        <i data-lucide="calendar" class="w-5 h-5"></i>
-        Attendance
+      <a href="{{ route('attendance.index', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id, 'term' => $term, 'assessmentType' => $attendanceType->id, 'assessment' => $attendanceAssessment->id]) }}" class="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
+        <i data-lucide="calendar" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+        <span class="hidden sm:inline">Attendance</span>
+        <span class="sm:hidden">Attend</span>
       </a>
     @endif
-    <button id="showAnalyticsBtn" onclick="openAnalyticsModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
-      <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
-      Analytics
+    <button id="showAnalyticsBtn" onclick="openAnalyticsModal()" class="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
+      <i data-lucide="bar-chart-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+      <span class="hidden sm:inline">Analytics</span>
+      <span class="sm:hidden">Stats</span>
     </button>
   </div>
 </div>
@@ -402,8 +407,8 @@
 <!-- Filter and Sort Controls -->
 <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
   <div>
-    <label for="riskFilter" class="mr-2 font-medium text-sm">Filter by Risk:</label>
-    <select id="riskFilter" class="border rounded px-2 py-1 text-sm">
+    <label for="riskFilter" class="mr-2 font-medium text-sm text-gray-700 dark:text-gray-300">Filter by Risk:</label>
+    <select id="riskFilter" class="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
       <option value="all">Show All</option>
       <option value="high">High Risk</option>
       <option value="low">Low Risk</option>
@@ -418,7 +423,7 @@
       <thead class="bg-gray-50 dark:bg-gray-700">
         <tr>
           <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-            <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+            <input type="checkbox" id="selectAll" class="rounded border-gray-300 dark:border-gray-600 text-red-600 focus:ring-red-500 dark:bg-gray-700">
           </th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student ID</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer sort-header" data-sort="name">Name <span class="sort-icon">⇅</span></th>
@@ -434,7 +439,7 @@
         @forelse($enrolledStudents as $student)
              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700" data-student-id="{{ $student->id }}">
                <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                 <input type="checkbox" name="student_ids[]" value="{{ $student->id }}" class="student-checkbox rounded border-gray-300 text-red-600 focus:ring-red-500">
+                 <input type="checkbox" name="student_ids[]" value="{{ $student->id }}" class="student-checkbox rounded border-gray-300 dark:border-gray-600 text-red-600 focus:ring-red-500 dark:bg-gray-700">
                </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 <div class="flex items-center gap-2">
@@ -885,7 +890,7 @@
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                 <label class="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <input type="radio" name="edit_grading_type" value="balanced" class="mr-3" checked>
+                  <input type="radio" name="edit_grading_type" value="balanced" class="mr-3 text-red-600 focus:ring-red-500" checked>
                   <div>
                     <div class="font-medium text-gray-900 dark:text-gray-100">Balanced (50/50)</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">Equal weight for Midterm and Final</div>
@@ -893,7 +898,7 @@
                 </label>
                 
                 <label class="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <input type="radio" name="edit_grading_type" value="custom" class="mr-3">
+                  <input type="radio" name="edit_grading_type" value="custom" class="mr-3 text-red-600 focus:ring-red-500">
                   <div>
                     <div class="font-medium text-gray-900 dark:text-gray-100">Custom Weights</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">Define your own Midterm/Final weights</div>
@@ -1434,6 +1439,22 @@ function initializeMLRiskPredictions() {
   });
 }
 
+// Alternative initialization function that uses term-specific endpoint
+function initializeMLRiskPredictionsByTerm() {
+  const riskIndicators = document.querySelectorAll('.ml-risk-indicator');
+  const classSectionId = '{{ $classSectionModel->id }}';
+  const term = '{{ $term }}';
+  let delay = 0;
+  
+  riskIndicators.forEach((indicator, idx) => {
+    const studentId = indicator.getAttribute('data-student-id');
+    setTimeout(() => {
+      loadRiskPredictionByTerm(indicator, studentId, classSectionId, term);
+    }, delay);
+    delay += 100; // 100ms between each call, adjust as needed
+  });
+}
+
 function loadRiskPrediction(indicator, studentData) {
   const loadingDiv = indicator.querySelector('.ml-loading');
   const displayDiv = indicator.querySelector('.ml-risk-display');
@@ -1445,7 +1466,7 @@ function loadRiskPrediction(indicator, studentData) {
   displayDiv.classList.add('hidden');
   errorDiv.classList.add('hidden');
 
-  // Make API call
+  // Make API call with term-filtered data (data is already filtered by current term)
   fetch('/api/ml/predict/student', {
     method: 'POST',
     headers: {
@@ -1489,6 +1510,67 @@ function loadRiskPrediction(indicator, studentData) {
     errorDiv.classList.remove('hidden');
     // Optionally, remove color if error
     const studentId = indicator.getAttribute('data-student-id');
+    const nameCell = document.querySelector(`.student-name-cell[data-student-id="${studentId}"]`);
+    if (nameCell) {
+      nameCell.classList.remove('text-red-600', 'text-orange-500', 'text-green-600');
+    }
+  });
+}
+
+// Alternative function that uses the term-specific endpoint
+function loadRiskPredictionByTerm(indicator, studentId, classSectionId, term) {
+  const loadingDiv = indicator.querySelector('.ml-loading');
+  const displayDiv = indicator.querySelector('.ml-risk-display');
+  const errorDiv = indicator.querySelector('.ml-error');
+  const badgesDiv = indicator.querySelector('.risk-badges');
+
+  // Show loading
+  loadingDiv.classList.remove('hidden');
+  displayDiv.classList.add('hidden');
+  errorDiv.classList.add('hidden');
+
+  // Make API call using term-specific endpoint
+  fetch(`/api/ml/predict/student/${studentId}/${classSectionId}/${term}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    loadingDiv.classList.add('hidden');
+    const nameCell = document.querySelector(`.student-name-cell[data-student-id="${studentId}"]`);
+    
+    if (data.success && data.predictions && data.predictions.has_risks) {
+      displayDiv.classList.remove('hidden');
+      renderRiskBadges(badgesDiv, data.predictions.risks);
+      // Color logic
+      const hasAtRisk = data.predictions.risks.some(risk => risk.code === 'risk_at_risk');
+      if (hasAtRisk) {
+        nameCell.classList.remove('text-green-600', 'text-orange-500');
+        nameCell.classList.add('text-red-600');
+      } else {
+        nameCell.classList.remove('text-red-600', 'text-green-600');
+        nameCell.classList.add('text-orange-500');
+      }
+    } else if (data.success && data.predictions && !data.predictions.has_risks) {
+      displayDiv.classList.remove('hidden');
+      badgesDiv.innerHTML = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Safe</span>';
+      // Safe: green
+      nameCell.classList.remove('text-red-600', 'text-orange-500');
+      nameCell.classList.add('text-green-600');
+    } else {
+      errorDiv.classList.remove('hidden');
+      // Optionally, remove color if error
+      nameCell.classList.remove('text-red-600', 'text-orange-500', 'text-green-600');
+    }
+  })
+  .catch(error => {
+    console.error('ML Prediction error:', error);
+    loadingDiv.classList.add('hidden');
+    errorDiv.classList.remove('hidden');
+    // Optionally, remove color if error
     const nameCell = document.querySelector(`.student-name-cell[data-student-id="${studentId}"]`);
     if (nameCell) {
       nameCell.classList.remove('text-red-600', 'text-orange-500', 'text-green-600');

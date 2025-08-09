@@ -35,11 +35,11 @@
 </nav>
 
 <!-- Header Section -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
   <div>
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Gradebook - {{ $classSection->section }}</h2>
-    <p class="text-gray-600 dark:text-gray-400 mt-1">{{ $classSection->subject->code }} - {{ $classSection->subject->title }}</p>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Gradebook - {{ $classSection->section }}</h2>
+    <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">{{ $classSection->subject->code }} - {{ $classSection->subject->title }}</p>
+    <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
       @if($gradingStructure)
         Weights: Midterm {{ $gradingStructure->midterm_weight }}% | Final {{ $gradingStructure->final_weight }}%
       @else
@@ -47,41 +47,49 @@
       @endif
     </p>
   </div>
-  <div class="flex items-center gap-4">
-    <div class="flex items-center gap-2">
-      <label for="grading_mode" class="text-sm font-medium text-gray-700 dark:text-gray-300">Grading Mode:</label>
-      <select id="grading_mode" class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500">
-        <option value="percentage">Percentage-Based</option>
-        <option value="linear">Linear (1.0–5.0)</option>
-        <option value="custom">Custom</option>
-      </select>
+  
+  <!-- Mobile: Stack buttons vertically -->
+  <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
+    <!-- Grading Controls Row -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <label for="grading_mode" class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Grading Mode:</label>
+        <select id="grading_mode" class="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-red-500">
+          <option value="percentage">Percentage-Based</option>
+          <option value="linear">Linear (1.0–5.0)</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      
+      <button id="customize_grading" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors hidden">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+        <span>Customize</span>
+      </button>
+      
+      <div id="current_settings" class="text-xs text-gray-500 dark:text-gray-400 hidden">
+        <span id="settings_summary"></span>
+      </div>
     </div>
     
-    <button id="customize_grading" class="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors hidden">
-      <i data-lucide="settings" class="w-4 h-4"></i>
-      Customize
-    </button>
+    <!-- Divider - hidden on mobile -->
+    <div class="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
     
-
-    
-    <div id="current_settings" class="text-xs text-gray-500 dark:text-gray-400 hidden">
-      <span id="settings_summary"></span>
+    <!-- Action Buttons Row -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+      <a href="{{ route('grading.system', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id, 'term' => 'midterm']) }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors text-xs sm:text-sm">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>Back to Grading</span>
+      </a>
+      
+      <!-- Export Button -->
+      <button
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-medium rounded-lg transition-colors hover:bg-red-600 text-xs sm:text-sm"
+        onclick="document.getElementById('exportModal').classList.remove('hidden')"
+      >
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>Export</span>
+      </button>
     </div>
-    
-    <div class="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
-    
-    <a href="{{ route('grading.system', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id, 'term' => 'midterm']) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors">
-      <i data-lucide="arrow-left" class="w-4 h-4"></i>
-      Back to Grading
-    </a>
-    <!-- Export Button -->
-    <button
-      class="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white font-medium rounded-lg transition-colors hover:bg-red-600"
-      onclick="document.getElementById('exportModal').classList.remove('hidden')"
-    >
-      <i data-lucide="download" class="w-4 h-4"></i>
-      Export
-    </button>
   </div>
 </div>
 
@@ -175,10 +183,10 @@
 
 <!-- Gradebook Table -->
 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-x-auto">
-  <table class="w-full min-w-[1400px]">
+  <table class="w-full min-w-[800px] sm:min-w-[1400px]">
     <thead>
       <tr>
-        <th rowspan="3" class="px-6 py-3 text-left bg-white dark:bg-gray-800 sticky left-0 top-0 z-20 border-b border-gray-200 dark:border-gray-700">
+        <th rowspan="3" class="px-2 sm:px-6 py-3 text-left bg-white dark:bg-gray-800 sticky left-0 top-0 z-20 border-b border-gray-200 dark:border-gray-700">
           <div class="text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</div>
         </th>
         
@@ -265,10 +273,11 @@
           @endphp
           @if($assessmentList->count() > 0)
             @foreach($assessmentList as $assessment)
-              <th class="px-4 py-2 text-center bg-blue-50 dark:bg-blue-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700">
+              <th class="px-2 sm:px-4 py-2 text-center bg-blue-50 dark:bg-blue-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700">
                 <a href="{{ route('assessments.index', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id, 'term' => 'midterm', 'assessmentType' => $assessmentType->id]) }}" 
                    class="text-blue-600 dark:text-blue-400 hover:underline text-xs">
-                  {{ $assessment->name }}
+                  <span class="hidden sm:inline">{{ $assessment->name }}</span>
+                  <span class="sm:hidden">{{ Str::limit($assessment->name, 8) }}</span>
                 </a>
                 <div class="text-xs text-blue-500 dark:text-blue-400">Max: {{ $assessment->max_score }}</div>
               </th>
@@ -287,10 +296,11 @@
           @endphp
           @if($assessmentList->count() > 0)
             @foreach($assessmentList as $assessment)
-              <th class="px-4 py-2 text-center bg-green-50 dark:bg-green-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700">
+              <th class="px-2 sm:px-4 py-2 text-center bg-green-50 dark:bg-green-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700">
                 <a href="{{ route('assessments.index', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id, 'term' => 'final', 'assessmentType' => $assessmentType->id]) }}" 
                    class="text-green-600 dark:text-green-400 hover:underline text-xs">
-                  {{ $assessment->name }}
+                  <span class="hidden sm:inline">{{ $assessment->name }}</span>
+                  <span class="sm:hidden">{{ Str::limit($assessment->name, 8) }}</span>
                 </a>
                 <div class="text-xs text-green-500 dark:text-green-400">Max: {{ $assessment->max_score }}</div>
               </th>
@@ -306,9 +316,13 @@
     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
       @forelse($students as $student)
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-          <td class="px-6 py-4 bg-white dark:bg-gray-800 sticky left-0 z-10">
-            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $student->last_name }}, {{ $student->first_name }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ $student->student_id }}</div>
+          <td class="px-2 sm:px-6 py-4 bg-white dark:bg-gray-800 sticky left-0 z-10">
+            <div class="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
+              <span class="hidden sm:inline">{{ $student->last_name }}, {{ $student->first_name }}</span>
+              <span class="sm:hidden">{{ $student->last_name }}, {{ $student->first_name }}</span>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{{ $student->student_id }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 sm:hidden">{{ substr($student->student_id, 0, 8) }}{{ strlen($student->student_id) > 8 ? '...' : '' }}</div>
           </td>
           
           <!-- Midterm Scores -->
@@ -324,7 +338,7 @@
                   $percentage = $score && $score->percentage_score !== null ? $score->percentage_score : null;
                   $showWarning = $assessment->warning_score !== null && $score && $score->score !== null && $score->score < $assessment->warning_score;
                 @endphp
-                <td class="px-4 py-3 text-center hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors">
+                <td class="px-2 sm:px-4 py-3 text-center hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors">
                   <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ $displayScore }}
                     @if($showWarning)
@@ -341,7 +355,7 @@
                 </td>
               @endforeach
             @else
-              <td class="px-4 py-3 text-center hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors">
+              <td class="px-2 sm:px-4 py-3 text-center hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors">
                 <div class="text-sm text-gray-500 dark:text-gray-400">--</div>
               </td>
             @endif
@@ -360,7 +374,7 @@
                   $percentage = $score && $score->percentage_score !== null ? $score->percentage_score : null;
                   $showWarning = $assessment->warning_score !== null && $score && $score->score !== null && $score->score < $assessment->warning_score;
                 @endphp
-                <td class="px-4 py-3 text-center hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors">
+                <td class="px-2 sm:px-4 py-3 text-center hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors">
                   <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ $displayScore }}
                     @if($showWarning)
@@ -377,14 +391,14 @@
                 </td>
               @endforeach
             @else
-              <td class="px-4 py-3 text-center hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors">
+              <td class="px-2 sm:px-4 py-3 text-center hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors">
                 <div class="text-sm text-gray-500 dark:text-gray-400">--</div>
               </td>
             @endif
           @endforeach
           
           <!-- Midterm Grade -->
-          <td class="px-4 py-3 text-center font-semibold">
+          <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->midterm_grade !== null)
               <span class="grade-display text-lg text-blue-600 dark:text-blue-400" data-grade="{{ $student->midterm_grade }}" data-type="percentage">
                 {{ $student->midterm_grade }}%
@@ -395,7 +409,7 @@
           </td>
           
           <!-- Final Grade -->
-          <td class="px-4 py-3 text-center font-semibold">
+          <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->final_grade !== null)
               <span class="grade-display text-lg text-green-600 dark:text-green-400" data-grade="{{ $student->final_grade }}" data-type="percentage">
                 {{ $student->final_grade }}%
@@ -406,7 +420,7 @@
           </td>
           
           <!-- Overall Grade -->
-          <td class="px-4 py-3 text-center font-semibold">
+          <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->overall_grade !== null)
               <span class="grade-display text-lg font-bold" data-grade="{{ $student->overall_grade }}" data-type="percentage">
                 {{ $student->overall_grade }}%

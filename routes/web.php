@@ -467,8 +467,8 @@ Route::get('/subjects/{subject}/classes/{classSection}/{term}/grading', function
             'overall' => $overallGrade
         ];
         
-        // Calculate ML metrics for this student (always use all terms)
-        $metrics = $metricsService->calculateStudentMetrics($student->id, $classSectionModel->id, null);
+        // Calculate ML metrics for this student (filtered by current term)
+        $metrics = $metricsService->calculateStudentMetrics($student->id, $classSectionModel->id, $term);
         $studentMetrics[$student->id] = $metrics;
         
         // Calculate absence data if subject has attendance
@@ -971,7 +971,8 @@ Route::prefix('api/ml')->middleware('auth')->group(function () {
     Route::post('/predict/bulk', [MLPredictionController::class, 'getBulkRiskPredictions'])->name('ml.predict.bulk');
     Route::get('/health', [MLPredictionController::class, 'healthCheck'])->name('ml.health');
     Route::get('/info', [MLPredictionController::class, 'getApiInfo'])->name('ml.info');
-    Route::get('/metrics/{studentId}/{classSectionId}', [MLPredictionController::class, 'getStudentMetrics'])->name('ml.metrics');
+    Route::get('/metrics/{studentId}/{classSectionId}/{term?}', [MLPredictionController::class, 'getStudentMetrics'])->name('ml.metrics');
+    Route::get('/predict/student/{studentId}/{classSectionId}/{term}', [MLPredictionController::class, 'getStudentRiskPredictionsByTerm'])->name('ml.predict.student.term');
 });
 
 Route::get('/subjects/{subject}/classes/{classSection}/analytics/{term}', [\App\Http\Controllers\StudentController::class, 'getAnalytics'])->name('class.analytics');
