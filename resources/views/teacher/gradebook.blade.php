@@ -94,7 +94,7 @@
 </div>
 
 <!-- Export Modal -->
-<div id="exportModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+<div id="exportModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
   <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-80">
     <h3 class="text-lg font-bold mb-4">Export Gradebook</h3>
     <form method="GET" action="{{ route('gradebook.export', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id]) }}">
@@ -116,7 +116,7 @@
 </div>
 
 <!-- Grading Customization Modal -->
-<div id="gradingModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+<div id="gradingModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
   <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-96 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Customize Grading Parameters</h3>

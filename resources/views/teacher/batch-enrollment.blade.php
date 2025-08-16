@@ -1,6 +1,50 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+  /* Custom file input styling */
+  input[type="file"] {
+    background-color: white !important;
+    color: #374151 !important;
+    cursor: pointer !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+  
+  input[type="file"]::-webkit-file-upload-button {
+    background-color: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.375rem !important;
+    padding: 0.5rem 1rem !important;
+    margin-right: 0.75rem !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+  }
+  
+  input[type="file"]::-webkit-file-upload-button:hover {
+    background-color: #e5e7eb !important;
+  }
+  
+  /* Dark mode support */
+  .dark input[type="file"] {
+    background-color: #374151 !important;
+    color: #f9fafb !important;
+    border-color: #4b5563 !important;
+  }
+  
+  .dark input[type="file"]::-webkit-file-upload-button {
+    background-color: #4b5563 !important;
+    color: #f9fafb !important;
+    border-color: #6b7280 !important;
+  }
+  
+  .dark input[type="file"]::-webkit-file-upload-button:hover {
+    background-color: #6b7280 !important;
+  }
+</style>
+
 <!-- Breadcrumbs -->
 <nav class="mb-6" aria-label="Breadcrumb">
   <ol class="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
@@ -97,15 +141,45 @@
       
       <div class="space-y-4">
         <div>
-                     <label for="excel_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-             Select File (.xlsx, .xls, .csv)
-           </label>
-           <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,.csv" required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
-           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum file size: 2MB. Supports XLSX, XLS, and CSV formats.</p>
+          <label for="excel_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Select File (.xlsx, .xls, .csv)
+          </label>
+          
+          <!-- Drag and Drop Area -->
+          <div id="dropZone" class="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center transition-colors hover:border-red-400 dark:hover:border-red-500 cursor-pointer bg-gray-50 dark:bg-gray-700/50">
+            <div class="flex flex-col items-center justify-center space-y-3">
+              <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-400 dark:text-gray-500"></i>
+              <div>
+                <p class="text-lg font-medium text-gray-700 dark:text-gray-300">Drop your file here</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">or click to browse</p>
+              </div>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Supports XLSX, XLS, and CSV formats (max 2MB)</p>
+            </div>
+          </div>
+          
+          <!-- Hidden file input -->
+          <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,.csv" required
+                 class="hidden"
+                 style="background-color: white; color: #374151; cursor: pointer;">
+          
+          <!-- File info display -->
+          <div id="fileInfo" class="hidden mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div class="flex items-center gap-3">
+              <i data-lucide="check-circle" class="w-5 h-5 text-green-600 dark:text-green-400"></i>
+              <div>
+                <p id="fileName" class="text-sm font-medium text-green-800 dark:text-green-200"></p>
+                <p id="fileSize" class="text-xs text-green-600 dark:text-green-400"></p>
+              </div>
+              <button type="button" onclick="removeFile()" class="ml-auto text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum file size: 2MB. Supports XLSX, XLS, and CSV formats.</p>
         </div>
         
-        <button type="submit" class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors">
+        <button type="submit" class="w-full px-4 py-2 text-white font-medium rounded-lg transition-colors" style="background-color: #dc2626; border: none; cursor: pointer;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
           <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
           Upload and Enroll Students
         </button>
@@ -194,7 +268,7 @@
      <div class="flex items-center gap-4">
        <span class="text-sm text-gray-500 dark:text-gray-400">{{ $classSection->students()->count() }} students</span>
        @if($classSection->students()->count() > 0)
-         <button id="bulkUnenrollBtn" class="hidden px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+         <button id="bulkUnenrollBtn" class="hidden px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors" style="background-color: #dc2626; border: none; cursor: pointer;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
            <i data-lucide="user-minus" class="w-4 h-4 inline mr-1"></i>
            Unenroll Selected
          </button>
@@ -272,15 +346,94 @@
  <script>
  lucide.createIcons();
 
- // Bulk unenroll functionality
+ // Drag and drop functionality
  document.addEventListener('DOMContentLoaded', function() {
-   const selectAllCheckbox = document.getElementById('selectAll');
+   const dropZone = document.getElementById('dropZone');
+   const excelFileInput = document.getElementById('excel_file');
+   const fileNameDisplay = document.getElementById('fileName');
+   const fileSizeDisplay = document.getElementById('fileSize');
+   const fileInfo = document.getElementById('fileInfo');
    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
    const bulkUnenrollBtn = document.getElementById('bulkUnenrollBtn');
    const bulkUnenrollForm = document.getElementById('bulkUnenrollForm');
    const selectedStudentIdsInput = document.getElementById('selectedStudentIds');
 
+   // Function to update file info display
+   function updateFileInfo() {
+     if (excelFileInput.files.length > 0) {
+       fileNameDisplay.textContent = excelFileInput.files[0].name;
+       const fileSizeInBytes = excelFileInput.files[0].size;
+       const fileSizeInKB = (fileSizeInBytes / 1024).toFixed(2);
+       fileSizeDisplay.textContent = `${fileSizeInKB} KB`;
+       fileInfo.classList.remove('hidden');
+     } else {
+       fileNameDisplay.textContent = '';
+       fileSizeDisplay.textContent = '';
+       fileInfo.classList.add('hidden');
+     }
+   }
+
+   // Function to remove file from input
+   window.removeFile = function() {
+     excelFileInput.value = ''; // Clear the file input
+     updateFileInfo(); // Update the display
+     fileInfo.classList.add('hidden'); // Hide the info display
+   }
+
+   // Initial update
+   updateFileInfo();
+
+   // Drag and drop event listeners
+   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+     dropZone.addEventListener(eventName, preventDefaults, false);
+   });
+
+   function preventDefaults(e) {
+     e.preventDefault();
+     e.stopPropagation();
+   }
+
+   dropZone.addEventListener('drop', handleDrop, false);
+
+   function handleDrop(e) {
+     const dt = e.dataTransfer;
+     const files = dt.files;
+     excelFileInput.files = files;
+     updateFileInfo();
+     fileInfo.classList.remove('hidden');
+   }
+
+   // Click to browse functionality
+   dropZone.addEventListener('click', function() {
+     excelFileInput.click();
+   });
+
+   // File input change event
+   excelFileInput.addEventListener('change', function() {
+     updateFileInfo();
+     if (excelFileInput.files.length > 0) {
+       fileInfo.classList.remove('hidden');
+     }
+   });
+
+   // Drag visual feedback
+   dropZone.addEventListener('dragenter', function() {
+     dropZone.classList.add('border-red-400', 'dark:border-red-500');
+     dropZone.classList.remove('border-gray-300', 'dark:border-gray-600');
+   });
+
+   dropZone.addEventListener('dragleave', function() {
+     dropZone.classList.remove('border-red-400', 'dark:border-red-500');
+     dropZone.classList.add('border-gray-300', 'dark:border-gray-600');
+   });
+
+   dropZone.addEventListener('drop', function() {
+     dropZone.classList.remove('border-red-400', 'dark:border-red-500');
+     dropZone.classList.add('border-gray-300', 'dark:border-gray-600');
+   });
+
    // Select all functionality
+   const selectAllCheckbox = document.getElementById('selectAll');
    if (selectAllCheckbox) {
      selectAllCheckbox.addEventListener('change', function() {
        studentCheckboxes.forEach(checkbox => {
