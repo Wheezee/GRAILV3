@@ -224,7 +224,7 @@
                   <td class="py-1 px-1 sm:px-2">BSIT</td>
                   <td class="py-1 px-1 sm:px-2">3</td>
                   <td class="py-1 px-1 sm:px-2">1</td>
-                  <td class="py-1 px-1 sm:px-2">M</td>
+                  <td class="py-1 px-1 sm:px-2">Male</td>
                   <td class="py-1 px-1 sm:px-2">1.9</td>
                 </tr>
               </tbody>

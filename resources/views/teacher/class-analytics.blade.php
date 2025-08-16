@@ -1250,6 +1250,8 @@ function calculateCorrelation() {
   // Extract variables
   const xValues = [];
   const yValues = [];
+  const xValuesForHistogram = [];
+  const yValuesForHistogram = [];
   const labels = [];
   
   studentData.forEach(ranking => {
@@ -1327,32 +1329,40 @@ function calculateCorrelation() {
     if (xIsValid && yIsValid) {
       // Prepare values based on data type and method
       let finalXValue, finalYValue;
+      let finalXValueForHistogram, finalYValueForHistogram;
       
-      // Handle gender variables (which now have both categorical and binary versions)
       if (typeof xValue === 'object' && xValue.categorical !== undefined) {
         // This is a gender variable, choose appropriate version based on method
         if (method === 'point_biserial' || method === 'independent_t_test') {
           finalXValue = xValue.binary; // Use binary (0/1) for these methods
+          finalXValueForHistogram = xValue.categorical; // Use categorical for histogram
         } else {
           finalXValue = xValue.categorical; // Use categorical for others
+          finalXValueForHistogram = xValue.categorical; // Use categorical for histogram
         }
       } else {
         finalXValue = xValue;
+        finalXValueForHistogram = xValue;
       }
       
       if (typeof yValue === 'object' && yValue.categorical !== undefined) {
         // This is a gender variable, choose appropriate version based on method
         if (method === 'point_biserial' || method === 'independent_t_test') {
           finalYValue = yValue.binary; // Use binary (0/1) for these methods
+          finalYValueForHistogram = yValue.categorical; // Use categorical for histogram
         } else {
           finalYValue = yValue.categorical; // Use categorical for others
+          finalYValueForHistogram = yValue.categorical; // Use categorical for histogram
         }
       } else {
         finalYValue = yValue;
+        finalYValueForHistogram = yValue;
       }
       
       xValues.push(finalXValue);
       yValues.push(finalYValue);
+      xValuesForHistogram.push(finalXValueForHistogram);
+      yValuesForHistogram.push(finalYValueForHistogram);
       labels.push(`${ranking.student.first_name} ${ranking.student.last_name}`);
       console.log(`Added student ${ranking.student.first_name} to arrays: x=${finalXValue}, y=${finalYValue}`);
     } else {
@@ -1409,7 +1419,7 @@ function calculateCorrelation() {
   const correlation = calculateCorrelationCoefficient(xValues, yValues, method);
   
   // Display results
-  displayCorrelationResults(correlation, xValues, yValues, labels, variableX, variableY, method);
+  displayCorrelationResults(correlation, xValues, yValues, xValuesForHistogram, yValuesForHistogram, labels, variableX, variableY, method);
   
   // Hide loading
   document.getElementById('correlationLoading').classList.add('hidden');
@@ -1507,24 +1517,45 @@ function calculateCorrelationCoefficient(x, y, method) {
       return { error: 'Insufficient data for t-test' };
     }
     
+    // Warn about small sample sizes
+    if (group1.length < 2 || group0.length < 2) {
+      alert('⚠️ WARNING: Small sample sizes detected. T-Test results may not be reliable with less than 2 observations per group.');
+    }
+    
     const mean1 = group1.reduce((sum, val) => sum + val, 0) / group1.length;
     const mean0 = group0.reduce((sum, val) => sum + val, 0) / group0.length;
     
-    const var1 = group1.reduce((sum, val) => sum + Math.pow(val - mean1, 2), 0) / (group1.length - 1);
-    const var0 = group0.reduce((sum, val) => sum + Math.pow(val - mean0, 2), 0) / (group0.length - 1);
+    // Handle case where one group has only 1 observation (no variance)
+    if (group1.length === 1 && group0.length === 1) {
+      return { error: 'Cannot perform t-test with only 1 observation per group' };
+    }
+    
+    // Calculate variances, handling single-observation groups
+    const var1 = group1.length > 1 ? 
+      group1.reduce((sum, val) => sum + Math.pow(val - mean1, 2), 0) / (group1.length - 1) : 0;
+    const var0 = group0.length > 1 ? 
+      group0.reduce((sum, val) => sum + Math.pow(val - mean0, 2), 0) / (group0.length - 1) : 0;
     
     const pooledVar = ((group1.length - 1) * var1 + (group0.length - 1) * var0) / (group1.length + group0.length - 2);
     const pooledStd = Math.sqrt(pooledVar);
     
-    if (pooledStd === 0) {
-      return { error: 'No variance in data for t-test' };
+    if (pooledStd === 0 || isNaN(pooledStd)) {
+      return { error: 'Insufficient variance in data for t-test' };
     }
     
     const tStat = (mean1 - mean0) / (pooledStd * Math.sqrt(1/group1.length + 1/group0.length));
     const df = group1.length + group0.length - 2;
     
+    // Debug logging
+    console.log('T-Test Debug:', {
+      group1: { values: group1, mean: mean1, n: group1.length },
+      group0: { values: group0, mean: mean0, n: group0.length },
+      pooledStd: pooledStd,
+      tStat: tStat,
+      df: df
+    });
+    
     // Calculate p-value (approximate using t-distribution)
-    // For simplicity, we'll use a basic approximation
     const pValue = calculatePValue(tStat, df);
     
     return {
@@ -1546,20 +1577,31 @@ function calculateCorrelationCoefficient(x, y, method) {
 
 // Helper function to calculate approximate p-value for t-test
 function calculatePValue(tStat, df) {
-  // This is a simplified approximation
-  // In a real application, you'd use a proper t-distribution table or library
+  // Better approximation using t-distribution properties
+  // This is still simplified but more accurate than the previous version
   
   const absT = Math.abs(tStat);
   
-  // Very rough approximation based on t-distribution properties
-  if (absT > 3.5) return 0.001;
-  if (absT > 3.0) return 0.01;
-  if (absT > 2.5) return 0.02;
-  if (absT > 2.0) return 0.05;
-  if (absT > 1.5) return 0.15;
-  if (absT > 1.0) return 0.30;
-  
-  return 0.50; // Default for small t-values
+  // For very small degrees of freedom (df < 5), t-distribution is more spread out
+  if (df <= 2) {
+    if (absT > 4.0) return 0.05;
+    if (absT > 2.0) return 0.20;
+    if (absT > 1.0) return 0.40;
+    return 0.60;
+  } else if (df <= 5) {
+    if (absT > 3.0) return 0.05;
+    if (absT > 2.0) return 0.10;
+    if (absT > 1.5) return 0.20;
+    if (absT > 1.0) return 0.35;
+    return 0.50;
+  } else {
+    // For larger df, closer to normal distribution
+    if (absT > 2.5) return 0.02;
+    if (absT > 2.0) return 0.05;
+    if (absT > 1.5) return 0.15;
+    if (absT > 1.0) return 0.30;
+    return 0.50;
+  }
 }
 
 function getRanks(values) {
@@ -1567,10 +1609,10 @@ function getRanks(values) {
   return values.map(v => sorted.indexOf(v) + 1);
 }
 
-function displayCorrelationResults(result, xValues, yValues, labels, varX, varY, method) {
+function displayCorrelationResults(result, xValues, yValues, xValuesForHistogram, yValuesForHistogram, labels, varX, varY, method) {
   // Check if this is a t-test result
   if (result.type === 't_test') {
-    displayTTestResults(result, xValues, yValues, labels, varX, varY);
+    displayTTestResults(result, xValues, yValues, xValuesForHistogram, yValuesForHistogram, labels, varX, varY);
     return;
   }
   
@@ -1619,8 +1661,8 @@ function displayCorrelationResults(result, xValues, yValues, labels, varX, varY,
   document.getElementById('correlationInterpretation').textContent = interpretation + interpretation2;
   
   // Create histograms
-  createVariableHistogram('xVariableHistogram', xValues, getVariableLabel(varX), 'indigo');
-  createVariableHistogram('yVariableHistogram', yValues, getVariableLabel(varY), 'green');
+  createVariableHistogram('xVariableHistogram', xValuesForHistogram, getVariableLabel(varX), 'indigo');
+  createVariableHistogram('yVariableHistogram', yValuesForHistogram, getVariableLabel(varY), 'green');
   
   // Create enhanced scatter plot with regression line
   createEnhancedScatterPlot(xValues, yValues, labels, varX, varY, method, correlation);
@@ -1629,7 +1671,7 @@ function displayCorrelationResults(result, xValues, yValues, labels, varX, varY,
   document.getElementById('correlationResults').classList.remove('hidden');
 }
 
-function displayTTestResults(tTestResult, xValues, yValues, labels, varX, varY) {
+function displayTTestResults(tTestResult, xValues, yValues, xValuesForHistogram, yValuesForHistogram, labels, varX, varY) {
   // Update UI for t-test results
   document.getElementById('correlationCoefficient').textContent = tTestResult.t_statistic.toFixed(4);
   document.getElementById('correlationStrength').textContent = tTestResult.significant ? 'Significant' : 'Not Significant';
@@ -1645,8 +1687,8 @@ function displayTTestResults(tTestResult, xValues, yValues, labels, varX, varY) 
   document.getElementById('correlationInterpretation').textContent = interpretation + interpretation2;
   
   // Create histograms
-  createVariableHistogram('xVariableHistogram', xValues, getVariableLabel(varX), 'indigo');
-  createVariableHistogram('yVariableHistogram', yValues, getVariableLabel(varY), 'green');
+  createVariableHistogram('xVariableHistogram', xValuesForHistogram, getVariableLabel(varX), 'indigo');
+  createVariableHistogram('yVariableHistogram', yValuesForHistogram, getVariableLabel(varY), 'green');
   
   // Create t-test visualization (boxplot or bar chart)
   createTTestVisualization(tTestResult, varX, varY);

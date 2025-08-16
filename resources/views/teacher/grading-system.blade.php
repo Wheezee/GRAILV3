@@ -560,16 +560,18 @@
             </tr>
           @empty
             <tr>
-              <td colspan="5" class="px-6 py-12 text-center">
-                <div class="text-gray-400 dark:text-gray-500 mb-4">
-                  <i data-lucide="users" class="w-16 h-16 mx-auto"></i>
+              <td colspan="7" class="px-6 py-12">
+                <div class="flex flex-col items-center justify-center text-center">
+                  <div class="text-gray-400 dark:text-gray-500 mb-4">
+                    <i data-lucide="users" class="w-16 h-16 mx-auto"></i>
+                  </div>
+                  <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No students enrolled</h3>
+                  <p class="text-gray-500 dark:text-gray-400 mb-6">Enroll students to start grading</p>
+                  <button onclick="openEnrollStudentModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Enroll First Student
+                  </button>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No students enrolled</h3>
-                <p class="text-gray-500 dark:text-gray-400 mb-6">Enroll students to start grading</p>
-                <button onclick="openEnrollStudentModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
-                  <i data-lucide="plus" class="w-4 h-4"></i>
-                  Enroll First Student
-                </button>
               </td>
             </tr>
           @endforelse

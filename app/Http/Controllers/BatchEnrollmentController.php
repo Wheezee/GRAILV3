@@ -222,9 +222,9 @@ class BatchEnrollmentController extends Controller
             fputcsv($file, ['Student ID', 'Fullname', 'Major', 'Year Level', 'Registered', 'Gender', 'Grade']);
             
             // Add example rows (starting from row 7)
-            fputcsv($file, ['2019-35557', 'Carreon, Benjamin N.', 'BSIT', '3', '1', 'M', '1.9']);
-            fputcsv($file, ['2019-35842', 'Baldoze, Nerissa G.', 'BSTI', '3', '1', 'F', '2.5']);
-            fputcsv($file, ['2019-35527', 'Fernandez, Michell A.', 'BSIT', '3', '1', 'F', '1.7']);
+            fputcsv($file, ['2020-35003', 'Carreon, Benjamin N.', 'BSIT', '3', '1', 'Male', '1.9']);
+            fputcsv($file, ['2022-12036', 'Baldoza, Nerissa G.', 'BSIT', '3', '1', 'Female', '2.5']);
+            fputcsv($file, ['2022-45100', 'Fernandez, Michell A.', 'BSIT', '3', '1', 'Female', '1.7']);
             
             fclose($file);
         };
