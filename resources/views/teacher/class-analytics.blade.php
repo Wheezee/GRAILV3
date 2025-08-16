@@ -254,7 +254,7 @@
                 </div>
                     <button onclick="openCorrelationModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors mt-2">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                    Open Tool
+                    Open Correlation Tool
                 </button>
             </div>
                 <!-- Regression Tool Card -->

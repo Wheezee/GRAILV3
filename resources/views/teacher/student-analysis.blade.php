@@ -129,36 +129,41 @@
         </div>
     </div>
 
-    <!-- Risk Fingerprint Radar Chart -->
+    <!-- Combined Radar Charts Side by Side -->
     <div class="mb-8">
-        <h2 class="text-xl font-semibold mb-4">Overall Risk Fingerprint</h2>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            <canvas id="radarChart" height="300"></canvas>
-        </div>
-    </div>
-
-    <!-- Assessment Type Radar Chart -->
-    <div class="mb-8">
-        <h2 class="text-xl font-semibold mb-4">Performance Analysis by Assessment Type</h2>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            @php
-                // Calculate performance data for each assessment type
-                $assessmentTypeLabels = [];
-                $assessmentTypeData = [];
-                
-                foreach($assessmentTypes as $type) {
-                    $typeAssessments = $type->assessments;
-                    $studentScores = $typeAssessments->map(function($a) use ($student) {
-                        $score = $a->scores->where('student_id', $student->id)->first();
-                        $max = $a->max_score ?? 0;
-                        return ($score && $score->score !== null && $max > 0) ? round(($score->score / $max) * 100, 1) : null;
-                    })->filter()->values();
-                    
-                    $assessmentTypeLabels[] = $type->name;
-                    $assessmentTypeData[] = $studentScores->count() > 0 ? $studentScores->avg() : 0;
-                }
-            @endphp
-            <canvas id="assessmentTypeRadarChart" height="300"></canvas>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700 h-[400px] flex flex-col">
+            <h2 class="text-xl font-semibold mb-4">Student Radar Analysis</h2>
+            <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                <!-- Risk Fingerprint -->
+                <div class="flex flex-col h-full items-center justify-center">
+                    <h3 class="text-base font-medium mb-2">Risk Fingerprint</h3>
+                    <div class="w-full flex-1 flex items-center justify-center min-h-[250px]">
+                        <canvas id="radarChart" style="max-width:100%; max-height:300px;" height="300"></canvas>
+                    </div>
+                </div>
+                <!-- Performance by Type -->
+                <div class="flex flex-col h-full items-center justify-center">
+                    <h3 class="text-base font-medium mb-2">Performance by Type</h3>
+                    <div class="w-full flex-1 flex items-center justify-center min-h-[250px]">
+                        @php
+                            // Calculate performance data for each assessment type
+                            $assessmentTypeLabels = [];
+                            $assessmentTypeData = [];
+                            foreach($assessmentTypes as $type) {
+                                $typeAssessments = $type->assessments;
+                                $studentScores = $typeAssessments->map(function($a) use ($student) {
+                                    $score = $a->scores->where('student_id', $student->id)->first();
+                                    $max = $a->max_score ?? 0;
+                                    return ($score && $score->score !== null && $max > 0) ? round(($score->score / $max) * 100, 1) : null;
+                                })->filter()->values();
+                                $assessmentTypeLabels[] = $type->name;
+                                $assessmentTypeData[] = $studentScores->count() > 0 ? $studentScores->avg() : 0;
+                            }
+                        @endphp
+                        <canvas id="assessmentTypeRadarChart" style="max-width:100%; max-height:300px;" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

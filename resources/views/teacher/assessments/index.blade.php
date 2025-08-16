@@ -197,7 +197,7 @@
                              {{ $isLate ? 'checked' : '' }}
                              data-student-id="{{ $student->id }}"
                              data-assessment-id="{{ $assessment->id }}">
-                      <span class="text-gray-600 dark:text-gray-400">Late</span>
+                      <span class="text-gray-600 dark:text-gray-400">Late Submission</span>
                     </label>
                   </div>
                   @if($currentScore)
