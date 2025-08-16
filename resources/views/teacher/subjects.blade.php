@@ -373,18 +373,26 @@
                   </div>
                 </div>
               </div>
-            </div>          <!-- Autofill Checkbox -->
-            <div class="flex items-center justify-center mb-6">
-              <input type="checkbox" id="autofillAssessments" class="mr-2" onchange="toggleAutofillAssessments()">
-              <label for="autofillAssessments" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Add Attendance for Midterm and Final
-              </label>
             </div>
           </div>
 
           <!-- Midterm Assessment Types -->
           <div class="mb-8">
             <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-4 text-center">Midterm Assessment Types</h3>
+            
+            <!-- Midterm Attendance Checkbox -->
+            <div class="mb-6 max-w-2xl mx-auto">
+              <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/70 transition-all duration-200 shadow-sm">
+                <input type="checkbox" id="addMidtermAttendance" name="addMidtermAttendance" 
+                       class="w-5 h-5 text-blue-600 bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 rounded-md focus:ring-blue-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 transition-all duration-200 hover:scale-105">
+                <div class="ml-4">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-5 h-5 text-blue-600"></i>
+                    <span class="font-medium text-gray-900 dark:text-gray-100">Add Attendance for Midterm</span>
+                  </div>
+                </div>
+              </label>
+            </div>
             
             <div id="createMidtermAssessmentTypes" class="space-y-4 max-w-2xl mx-auto">
               <!-- Assessment types will be added here dynamically -->
@@ -414,6 +422,20 @@
           <!-- Final Assessment Types -->
           <div class="mb-8">
             <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-4 text-center">Final Assessment Types</h3>
+            
+            <!-- Final Attendance Checkbox -->
+            <div class="mb-6 max-w-2xl mx-auto">
+              <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/70 transition-all duration-200 shadow-sm">
+                <input type="checkbox" id="addFinalAttendance" name="addFinalAttendance" 
+                       class="w-5 h-5 text-blue-600 bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 rounded-md focus:ring-blue-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 transition-all duration-200 hover:scale-105">
+                <div class="ml-4">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="calendar-check" class="w-5 h-5 text-green-600"></i>
+                    <span class="font-medium text-gray-900 dark:text-gray-100">Add Attendance for Final</span>
+                  </div>
+                </div>
+              </label>
+            </div>
             
             <div id="createFinalAssessmentTypes" class="space-y-4 max-w-2xl mx-auto">
               <!-- Assessment types will be added here dynamically -->
@@ -624,6 +646,79 @@
 </div>
 
 
+
+<style>
+/* Custom checkbox styling for better-looking checkmarks */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  transform: scale(1.05);
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  animation: checkmark 0.2s ease-in-out;
+}
+
+input[type="checkbox"]:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Dark mode support */
+.dark input[type="checkbox"] {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+.dark input[type="checkbox"]:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.dark input[type="checkbox"]:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+@keyframes checkmark {
+  0% {
+    opacity: 0;
+    transform: rotate(45deg) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+}
+</style>
 
 <script>
 let currentStep = 1;
@@ -1193,12 +1288,26 @@ function createSubject() {
   document.getElementById('createMidtermAssessmentTypes').innerHTML = '';
   document.getElementById('createFinalAssessmentTypes').innerHTML = '';
   
-  // Add default assessment types
+  // Add one default assessment type for each term
   createAddAssessmentType('midterm');
   createAddAssessmentType('final');
   
   // Show modal
   modal.classList.add('show');
+  
+  // Set up attendance checkbox event listeners (only once)
+  setTimeout(() => {
+    const midtermCheckbox = document.getElementById('addMidtermAttendance');
+    const finalCheckbox = document.getElementById('addFinalAttendance');
+    
+    // Remove existing listeners first
+    midtermCheckbox?.removeEventListener('change', toggleAutofillAssessments);
+    finalCheckbox?.removeEventListener('change', toggleAutofillAssessments);
+    
+    // Add new listeners
+    midtermCheckbox?.addEventListener('change', toggleAutofillAssessments);
+    finalCheckbox?.addEventListener('change', toggleAutofillAssessments);
+  }, 100);
   
   // Focus on first input
   setTimeout(() => document.getElementById('create_code').focus(), 100);
@@ -1289,6 +1398,28 @@ function createAddAssessmentType(term) {
   `;
   
   container.appendChild(typeElement);
+  
+  // If this is the first assessment type and attendance checkbox is checked, auto-fill it
+  if (createAssessmentTypes[term].length === 1) {
+    const attendanceCheckbox = term === 'midterm' ? 
+      document.getElementById('addMidtermAttendance') : 
+      document.getElementById('addFinalAttendance');
+    
+    if (attendanceCheckbox && attendanceCheckbox.checked) {
+      // Auto-fill the first assessment as Attendance
+      const nameInput = typeElement.querySelector('input[type="text"]');
+      const weightInput = typeElement.querySelector('input[type="number"]');
+      
+      if (nameInput) {
+        nameInput.value = 'Attendance';
+        assessmentType.name = 'Attendance';
+      }
+      if (weightInput) {
+        weightInput.value = '100';
+        assessmentType.weight = 100;
+      }
+    }
+  }
   
   // Automatically distribute weights
   createDistributeWeightsAutomatically(term);
@@ -1507,6 +1638,8 @@ document.getElementById('create_midterm_weight')?.addEventListener('input', func
   finalWeight.value = Math.max(0, Math.min(100, 100 - value));
 });
 
+// Handle attendance checkboxes - will be set up when modal opens
+
 document.getElementById('create_final_weight')?.addEventListener('input', function() {
   const value = parseFloat(this.value) || 0;
   const midtermWeight = document.getElementById('create_midterm_weight');
@@ -1529,59 +1662,145 @@ document.addEventListener('keydown', function(e) {
 });
 
 function toggleAutofillAssessments() {
-  const checked = document.getElementById('autofillAssessments').checked;
-  if (checked) {
-    autofillDefaultAssessments();
-    // Disable add/remove buttons
-    document.querySelectorAll('.add-assessment-btn').forEach(btn => btn.disabled = true);
-    document.querySelectorAll('.remove-assessment-btn').forEach(btn => btn.disabled = true);
+  console.log('toggleAutofillAssessments called!');
+  
+  const midtermChecked = document.getElementById('addMidtermAttendance').checked;
+  const finalChecked = document.getElementById('addFinalAttendance').checked;
+  
+  console.log('Midterm checked:', midtermChecked);
+  console.log('Final checked:', finalChecked);
+  
+  // Handle Midterm Attendance
+  if (midtermChecked) {
+    console.log('Adding midterm attendance...');
+    addAttendanceAssessment('midterm');
   } else {
-    // Clear and enable manual editing
-    createAssessmentTypes.midterm = [];
-    createAssessmentTypes.final = [];
-    document.getElementById('createMidtermAssessmentTypes').innerHTML = '';
-    document.getElementById('createFinalAssessmentTypes').innerHTML = '';
-    createUpdateProgressBars();
-    document.querySelectorAll('.add-assessment-btn').forEach(btn => btn.disabled = false);
-    document.querySelectorAll('.remove-assessment-btn').forEach(btn => btn.disabled = false);
+    console.log('Removing midterm attendance...');
+    removeAttendanceAssessment('midterm');
   }
-}
-
-function autofillDefaultAssessments() {
-  // Autofill both midterm and final with 'Attendance' at 100%
-  const defaultMidterms = [
-    { name: 'Attendance', weight: 100 }
-  ];
-  const defaultFinals = [
-    { name: 'Attendance', weight: 100 }
-  ];
-
-  // Clear current
-  createAssessmentTypes.midterm = [];
-  createAssessmentTypes.final = [];
-  document.getElementById('createMidtermAssessmentTypes').innerHTML = '';
-  document.getElementById('createFinalAssessmentTypes').innerHTML = '';
-
-  // Add defaults
-  defaultMidterms.forEach(type => {
-    createAddAssessmentType('midterm');
-    const last = createAssessmentTypes.midterm[createAssessmentTypes.midterm.length - 1];
-    last.name = type.name;
-    last.weight = type.weight;
-    document.getElementById(`name_${last.id}`).value = type.name;
-    document.getElementById(`weight_${last.id}`).value = type.weight;
-  });
-
-  defaultFinals.forEach(type => {
-    createAddAssessmentType('final');
-    const last = createAssessmentTypes.final[createAssessmentTypes.final.length - 1];
-    last.name = type.name;
-    last.weight = type.weight;
-    document.getElementById(`name_${last.id}`).value = type.name;
-    document.getElementById(`weight_${last.id}`).value = type.weight;
-  });
-
+  
+  // Handle Final Attendance
+  if (finalChecked) {
+    console.log('Adding final attendance...');
+    addAttendanceAssessment('final');
+  } else {
+    console.log('Removing final attendance...');
+    removeAttendanceAssessment('final');
+  }
+  
+  // Update progress bars
   createUpdateProgressBars();
 }
+
+function addAttendanceAssessment(term) {
+  console.log(`Adding attendance for ${term}...`);
+  
+  // Check if attendance already exists in the data
+  const existingAttendance = createAssessmentTypes[term].find(type => type.name === 'Attendance');
+  if (existingAttendance) {
+    console.log(`Attendance already exists in data for ${term}`);
+    return; // Already exists
+  }
+  
+  // Check if attendance already exists in the UI
+  const container = document.getElementById(`create${term.charAt(0).toUpperCase() + term.slice(1)}AssessmentTypes`);
+  const existingUIElements = container.querySelectorAll('.bg-gray-50, .bg-gray-700');
+  
+  for (let element of existingUIElements) {
+    const nameInput = element.querySelector('input[type="text"]');
+    if (nameInput && nameInput.value === 'Attendance') {
+      console.log(`Attendance already exists in UI for ${term}`);
+      return; // Already exists in UI
+    }
+  }
+  
+  console.log(`Creating new attendance assessment for ${term}...`);
+  
+  // Create attendance assessment element manually (don't use createAddAssessmentType)
+  const counter = ++createAssessmentTypeCounter[term];
+  const typeId = `create_${term}_${counter}`;
+  const colorIndex = (counter - 1) % colors.length;
+  const color = colors[colorIndex];
+  
+  const assessmentType = {
+    id: typeId,
+    name: 'Attendance',
+    weight: 100,
+    term: term,
+    color: color
+  };
+  
+  // Add to data structure
+  createAssessmentTypes[term].unshift(assessmentType); // Add to beginning
+  
+  // Create UI element
+  const typeElement = document.createElement('div');
+  typeElement.className = 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4';
+  typeElement.innerHTML = `
+    <div class="flex items-center justify-between">
+      <div class="flex-1 mr-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assessment Type Name</label>
+        <input type="text" 
+               id="name_${typeId}"
+               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white" 
+               placeholder="e.g., Quiz, Lab, Project"
+               value="Attendance"
+               oninput="createUpdateAssessmentType('${typeId}', 'name', this.value)">
+      </div>
+      <div class="w-24">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight (%)</label>
+        <input type="number" 
+               id="weight_${typeId}"
+               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white" 
+               min="0" max="100" step="1" value="100"
+               oninput="createUpdateAssessmentType('${typeId}', 'weight', this.value)"
+               onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+      </div>
+      <button type="button" onclick="createRemoveAssessmentType('${typeId}')" class="ml-2 text-red-600 hover:text-red-700 p-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+  `;
+  
+  // Prepend to the top of the container
+  container.prepend(typeElement);
+  
+  console.log(`Attendance assessment added to top for ${term}`);
+  
+  // Update progress bars
+  createUpdateProgressBars();
+}
+
+function removeAttendanceAssessment(term) {
+  console.log(`Removing attendance for ${term}...`);
+  
+  // Remove attendance assessment from data
+  const beforeCount = createAssessmentTypes[term].length;
+  createAssessmentTypes[term] = createAssessmentTypes[term].filter(type => type.name !== 'Attendance');
+  const afterCount = createAssessmentTypes[term].length;
+  
+  console.log(`Removed ${beforeCount - afterCount} attendance assessments from data for ${term}`);
+  
+  // Update the UI - find and remove attendance elements
+  const container = document.getElementById(`create${term.charAt(0).toUpperCase() + term.slice(1)}AssessmentTypes`);
+  const allElements = container.querySelectorAll('.bg-gray-50, .bg-gray-700');
+  
+  console.log(`Found ${allElements.length} assessment elements to check for ${term}`);
+  
+  let removedCount = 0;
+  allElements.forEach(element => {
+    const nameInput = element.querySelector('input[type="text"]');
+    if (nameInput && nameInput.value === 'Attendance') {
+      console.log(`Removing attendance element:`, element);
+      element.remove();
+      removedCount++;
+    }
+  });
+  
+  console.log(`Removed ${removedCount} attendance elements from UI for ${term}`);
+  console.log(`Attendance removal completed for ${term}`);
+}
+
+
 </script>
 @endsection 
