@@ -330,11 +330,11 @@
         <span class="sm:hidden">Attend</span>
       </a>
     @endif
-    <button id="showAnalyticsBtn" onclick="openAnalyticsModal()" class="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
+    <a href="{{ route('class.analytics.page', ['subject' => $classSectionModel->subject->id, 'classSection' => $classSectionModel->id, 'term' => $term]) }}" class="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow transition-transform transform hover:scale-105 focus:outline-none">
       <i data-lucide="bar-chart-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-      <span class="hidden sm:inline">Analytics</span>
-      <span class="sm:hidden">Stats</span>
-    </button>
+      <span class="hidden sm:inline">Class Analytics</span>
+      <span class="sm:hidden">Analytics</span>
+    </a>
   </div>
 </div>
 

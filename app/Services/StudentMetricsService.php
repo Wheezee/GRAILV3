@@ -199,4 +199,82 @@ class StudentMetricsService
 
         return $results;
     }
+
+    /**
+     * Calculate student risk level using ML prediction
+     */
+    public function calculateStudentRisk($student, $assessmentTypes, $term)
+    {
+        // Get student metrics
+        $metrics = $this->calculateStudentMetrics($student->id, $student->classSections->first()->id, $term);
+        
+        if (!$metrics) {
+            return [
+                'risk_level' => 'Low Risk',
+                'risk_score' => 0
+            ];
+        }
+
+        // Use ML prediction service
+        $mlService = app(\App\Services\MLPredictionService::class);
+        $prediction = $mlService->getRiskPredictions($metrics);
+
+        // Determine risk level based on ML prediction
+        if ($prediction['success'] && $prediction['has_risks']) {
+            $risks = $prediction['risks'] ?? [];
+            $riskCount = count($risks);
+            
+            // Use the actual risk labels from ML API
+            if ($riskCount > 0) {
+                // Get the first risk label (or use a default mapping)
+                $firstRisk = $risks[0] ?? [];
+                $riskLabel = $firstRisk['label'] ?? 'Unknown Risk';
+                
+                // Use the actual ML label directly
+                $uiRiskLevel = $riskLabel;
+                
+                return [
+                    'risk_level' => $uiRiskLevel,
+                    'risk_score' => min(100, $riskCount * 25)
+                ];
+            }
+        }
+
+        // Fallback risk calculation based on metrics
+        $riskScore = 0;
+        
+        // Low average score
+        if ($metrics['avg_score_pct'] < 70) {
+            $riskScore += 30;
+        }
+        
+        // High variation
+        if ($metrics['variation_score_pct'] > 20) {
+            $riskScore += 20;
+        }
+        
+        // Late submissions
+        if ($metrics['late_submission_pct'] > 30) {
+            $riskScore += 25;
+        }
+        
+        // Missed submissions
+        if ($metrics['missed_submission_pct'] > 20) {
+            $riskScore += 25;
+        }
+
+        // Determine risk level
+        if ($riskScore >= 60) {
+            $riskLevel = 'High Risk';
+        } elseif ($riskScore >= 30) {
+            $riskLevel = 'Medium Risk';
+        } else {
+            $riskLevel = 'Low Risk';
+        }
+
+        return [
+            'risk_level' => $riskLevel,
+            'risk_score' => min(100, $riskScore)
+        ];
+    }
 } 

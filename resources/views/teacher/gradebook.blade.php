@@ -187,6 +187,9 @@
     <thead>
       <tr>
         <th rowspan="3" class="px-2 sm:px-6 py-3 text-left bg-white dark:bg-gray-800 sticky left-0 top-0 z-20 border-b border-gray-200 dark:border-gray-700">
+          <div class="text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student ID</div>
+        </th>
+        <th rowspan="3" class="px-2 sm:px-6 py-3 text-left bg-white dark:bg-gray-800 sticky left-0 top-0 z-20 border-b border-gray-200 dark:border-gray-700">
           <div class="text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</div>
         </th>
         
@@ -315,14 +318,20 @@
     </thead>
     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
       @forelse($students as $student)
+        @php
+          $isFailing = $student->overall_grade !== null && $student->overall_grade < 75;
+        @endphp
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td class="px-2 sm:px-6 py-4 bg-white dark:bg-gray-800 sticky left-0 z-10">
-            <div class="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
+            <div class="text-xs sm:text-sm font-medium {{ $isFailing ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100' }}">
+              {{ $student->student_id }}
+            </div>
+          </td>
+          <td class="px-2 sm:px-6 py-4 bg-white dark:bg-gray-800 sticky left-0 z-10">
+            <div class="text-xs sm:text-sm font-medium {{ $isFailing ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100' }}">
               <span class="hidden sm:inline">{{ $student->last_name }}, {{ $student->first_name }}</span>
               <span class="sm:hidden">{{ $student->last_name }}, {{ $student->first_name }}</span>
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{{ $student->student_id }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 sm:hidden">{{ substr($student->student_id, 0, 8) }}{{ strlen($student->student_id) > 8 ? '...' : '' }}</div>
           </td>
           
           <!-- Midterm Scores -->
@@ -432,7 +441,7 @@
         </tr>
       @empty
         <tr>
-          <td colspan="{{ ($midtermAssessmentTypes->count() + $finalAssessmentTypes->count() + 4) }}" class="px-6 py-12 text-center">
+          <td colspan="{{ ($midtermAssessmentTypes->count() + $finalAssessmentTypes->count() + 5) }}" class="px-6 py-12 text-center">
             <div class="text-gray-400 dark:text-gray-500 mb-4">
               <i data-lucide="users" class="w-16 h-16 mx-auto"></i>
             </div>

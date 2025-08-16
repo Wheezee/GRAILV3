@@ -131,9 +131,284 @@
 
     <!-- Risk Fingerprint Radar Chart -->
     <div class="mb-8">
-        <h2 class="text-xl font-semibold mb-4">Risk Fingerprint</h2>
+        <h2 class="text-xl font-semibold mb-4">Overall Risk Fingerprint</h2>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
             <canvas id="radarChart" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Assessment Type Radar Chart -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Performance Analysis by Assessment Type</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+            @php
+                // Calculate performance data for each assessment type
+                $assessmentTypeLabels = [];
+                $assessmentTypeData = [];
+                
+                foreach($assessmentTypes as $type) {
+                    $typeAssessments = $type->assessments;
+                    $studentScores = $typeAssessments->map(function($a) use ($student) {
+                        $score = $a->scores->where('student_id', $student->id)->first();
+                        $max = $a->max_score ?? 0;
+                        return ($score && $score->score !== null && $max > 0) ? round(($score->score / $max) * 100, 1) : null;
+                    })->filter()->values();
+                    
+                    $assessmentTypeLabels[] = $type->name;
+                    $assessmentTypeData[] = $studentScores->count() > 0 ? $studentScores->avg() : 0;
+                }
+            @endphp
+            <canvas id="assessmentTypeRadarChart" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Strengths & Weaknesses Analysis -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Strengths & Weaknesses Analysis</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Strengths Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-green-200 dark:border-green-700 overflow-hidden">
+                <div class="bg-green-50 dark:bg-green-900/20 p-4 border-b border-green-200 dark:border-green-700">
+                    <div class="flex items-center">
+                        <i data-lucide="trending-up" class="w-6 h-6 text-green-600 mr-3"></i>
+                        <h3 class="text-lg font-semibold text-green-800 dark:text-green-200">Student Strengths</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    @php
+                        $strengths = [];
+                        
+                        // Analyze performance patterns
+                        foreach($assessmentTypes as $type) {
+                            $typeAssessments = $type->assessments;
+                            $studentScores = $typeAssessments->map(function($a) use ($student) {
+                                $score = $a->scores->where('student_id', $student->id)->first();
+                                $max = $a->max_score ?? 0;
+                                return ($score && $score->score !== null && $max > 0) ? round(($score->score / $max) * 100, 1) : null;
+                            })->filter()->values();
+                            
+                            $classScores = $typeAssessments->map(function($a) {
+                                $scores = $a->scores->filter(function($score) {
+                                    return $score->score !== null;
+                                });
+                                $max = $a->max_score ?? 0;
+                                if ($scores->count() > 0 && $max > 0) {
+                                    return round(($scores->avg('score') / $max) * 100, 1);
+                                }
+                                return null;
+                            })->filter()->values();
+                            
+                            $studentAvg = $studentScores->count() > 0 ? $studentScores->avg() : 0;
+                            $classAvg = $classScores->count() > 0 ? $classScores->avg() : 0;
+                            $completionRate = $typeAssessments->count() > 0 ? ($studentScores->count() / $typeAssessments->count()) * 100 : 0;
+                            
+                            // Identify strengths
+                            if ($studentAvg > $classAvg + 5) {
+                                $strengths[] = [
+                                    'type' => $type->name,
+                                    'description' => "Excels in {$type->name} with {$studentAvg}% average (vs class {$classAvg}%)",
+                                    'icon' => 'target',
+                                    'color' => 'text-green-600'
+                                ];
+                            }
+                            
+                            if ($completionRate >= 90) {
+                                $strengths[] = [
+                                    'type' => $type->name,
+                                    'description' => "Excellent completion rate ({$completionRate}%) in {$type->name}",
+                                    'icon' => 'check-circle',
+                                    'color' => 'text-blue-600'
+                                ];
+                            }
+                            
+                            if ($studentScores->count() > 1) {
+                                $improvement = $studentScores->last() - $studentScores->first();
+                                if ($improvement > 10) {
+                                    $strengths[] = [
+                                        'type' => $type->name,
+                                        'description' => "Shows strong improvement (+{$improvement}%) in {$type->name}",
+                                        'icon' => 'trending-up',
+                                        'color' => 'text-purple-600'
+                                    ];
+                                }
+                            }
+                        }
+                        
+                        // Overall strengths
+                        if ($analytics['overall_average'] >= 80) {
+                            $strengths[] = [
+                                'type' => 'Overall',
+                                'description' => "Strong overall performance ({$analytics['overall_average']}%)",
+                                'icon' => 'star',
+                                'color' => 'text-yellow-600'
+                            ];
+                        }
+                        
+                        if (empty($strengths)) {
+                            $strengths[] = [
+                                'type' => 'General',
+                                'description' => "Consistent effort across all assessment types",
+                                'icon' => 'heart',
+                                'color' => 'text-pink-600'
+                            ];
+                        }
+                    @endphp
+                    
+                    @if(!empty($strengths))
+                        <div class="space-y-3">
+                            @foreach(array_slice($strengths, 0, 5) as $strength)
+                            <div class="flex items-start">
+                                <i data-lucide="{{ $strength['icon'] }}" class="w-5 h-5 {{ $strength['color'] }} mr-3 mt-0.5 flex-shrink-0"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $strength['type'] }}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ $strength['description'] }}</p>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-gray-500 text-center py-4">No specific strengths identified yet.</p>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Weaknesses Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-red-200 dark:border-red-700 overflow-hidden">
+                <div class="bg-red-50 dark:bg-red-900/20 p-4 border-b border-red-200 dark:border-red-700">
+                    <div class="flex items-center">
+                        <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600 mr-3"></i>
+                        <h3 class="text-lg font-semibold text-red-800 dark:text-red-200">Areas for Improvement</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    @php
+                        $weaknesses = [];
+                        
+                        // Analyze performance patterns
+                        foreach($assessmentTypes as $type) {
+                            $typeAssessments = $type->assessments;
+                            $studentScores = $typeAssessments->map(function($a) use ($student) {
+                                $score = $a->scores->where('student_id', $student->id)->first();
+                                $max = $a->max_score ?? 0;
+                                return ($score && $score->score !== null && $max > 0) ? round(($score->score / $max) * 100, 1) : null;
+                            })->filter()->values();
+                            
+                            $classScores = $typeAssessments->map(function($a) {
+                                $scores = $a->scores->filter(function($score) {
+                                    return $score->score !== null;
+                                });
+                                $max = $a->max_score ?? 0;
+                                if ($scores->count() > 0 && $max > 0) {
+                                    return round(($scores->avg('score') / $max) * 100, 1);
+                                }
+                                return null;
+                            })->filter()->values();
+                            
+                            $studentAvg = $studentScores->count() > 0 ? $studentScores->avg() : 0;
+                            $classAvg = $classScores->count() > 0 ? $classScores->avg() : 0;
+                            $completionRate = $typeAssessments->count() > 0 ? ($studentScores->count() / $typeAssessments->count()) * 100 : 0;
+                            
+                            // Calculate late submissions for this type
+                            $lateCount = $typeAssessments->sum(function($a) use ($student) {
+                                $score = $a->scores->where('student_id', $student->id)->first();
+                                return $score && $score->is_late ? 1 : 0;
+                            });
+                            
+                            // Identify weaknesses
+                            if ($studentAvg < $classAvg - 5) {
+                                $weaknesses[] = [
+                                    'type' => $type->name,
+                                    'description' => "Performs below class average in {$type->name} ({$studentAvg}% vs {$classAvg}%)",
+                                    'icon' => 'trending-down',
+                                    'color' => 'text-red-600',
+                                    'suggestion' => "Consider additional practice and review sessions"
+                                ];
+                            }
+                            
+                            if ($completionRate < 70) {
+                                $weaknesses[] = [
+                                    'type' => $type->name,
+                                    'description' => "Low completion rate ({$completionRate}%) in {$type->name}",
+                                    'icon' => 'x-circle',
+                                    'color' => 'text-orange-600',
+                                    'suggestion' => "Focus on assignment completion and time management"
+                                ];
+                            }
+                            
+                            if ($lateCount > 0) {
+                                $weaknesses[] = [
+                                    'type' => $type->name,
+                                    'description' => "Has {$lateCount} late submission(s) in {$type->name}",
+                                    'icon' => 'clock',
+                                    'color' => 'text-yellow-600',
+                                    'suggestion' => "Improve time management and planning skills"
+                                ];
+                            }
+                            
+                            if ($studentScores->count() > 1) {
+                                // Calculate standard deviation for consistency
+                                $mean = $studentScores->avg();
+                                $variance = $studentScores->map(function($score) use ($mean) {
+                                    return pow($score - $mean, 2);
+                                })->avg();
+                                $consistency = sqrt($variance);
+                                
+                                if ($consistency > 20) {
+                                    $weaknesses[] = [
+                                        'type' => $type->name,
+                                        'description' => "Inconsistent performance in {$type->name} (high variation)",
+                                        'icon' => 'activity',
+                                        'color' => 'text-purple-600',
+                                        'suggestion' => "Work on maintaining consistent study habits"
+                                    ];
+                                }
+                            }
+                        }
+                        
+                        // Overall weaknesses
+                        if ($analytics['overall_average'] < 75) {
+                            $weaknesses[] = [
+                                'type' => 'Overall',
+                                'description' => "Overall performance below passing threshold ({$analytics['overall_average']}%)",
+                                'icon' => 'alert-circle',
+                                'color' => 'text-red-600',
+                                'suggestion' => "Consider comprehensive review and additional support"
+                            ];
+                        }
+                        
+                        if (array_sum(array_column($analytics['type_stats'], 'missed_count')) > 0) {
+                            $weaknesses[] = [
+                                'type' => 'General',
+                                'description' => "Has missed assignments across multiple assessment types",
+                                'icon' => 'x',
+                                'color' => 'text-red-600',
+                                'suggestion' => "Improve attendance and assignment tracking"
+                            ];
+                        }
+                    @endphp
+                    
+                    @if(!empty($weaknesses))
+                        <div class="space-y-4">
+                            @foreach(array_slice($weaknesses, 0, 5) as $weakness)
+                            <div class="border-l-4 border-red-200 pl-4">
+                                <div class="flex items-start">
+                                    <i data-lucide="{{ $weakness['icon'] }}" class="w-5 h-5 {{ $weakness['color'] }} mr-3 mt-0.5 flex-shrink-0"></i>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $weakness['type'] }}</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ $weakness['description'] }}</p>
+                                        @if(isset($weakness['suggestion']))
+                                        <p class="text-xs text-blue-600 dark:text-blue-400 italic">💡 {{ $weakness['suggestion'] }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-gray-500 text-center py-4">No significant areas for improvement identified.</p>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 
@@ -294,9 +569,9 @@
         </div>
     </div>
 
-    <!-- Original Charts -->
+    <!-- Enhanced Charts with Class Comparison -->
     <div class="mb-8">
-        <h2 class="text-xl font-semibold mb-4">Scores Over Time</h2>
+        <h2 class="text-xl font-semibold mb-4">Scores Over Time (vs Class Average)</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             @foreach($assessmentTypes as $type)
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-gray-200 dark:border-gray-700 flex flex-col justify-between min-h-[220px]" style="min-height:220px;">
@@ -306,6 +581,119 @@
                 </div>
             </div>
             @endforeach
+        </div>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Performance Summary vs Class</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach($assessmentTypes as $type)
+                @php
+                    $studentScores = $type->assessments->map(function($a) use ($student) {
+                        $score = $a->scores->where('student_id', $student->id)->first();
+                        $max = $a->max_score ?? 0;
+                        return ($score && $score->score !== null && $max > 0) ? round(($score->score / $max) * 100, 1) : null;
+                    })->filter()->values();
+                    
+                    $classScores = $type->assessments->map(function($a) {
+                        $scores = $a->scores->filter(function($score) {
+                            return $score->score !== null;
+                        });
+                        $max = $a->max_score ?? 0;
+                        if ($scores->count() > 0 && $max > 0) {
+                            return round(($scores->avg('score') / $max) * 100, 1);
+                        }
+                        return null;
+                    })->filter()->values();
+                    
+                    $studentAvg = $studentScores->count() > 0 ? $studentScores->avg() : 0;
+                    $classAvg = $classScores->count() > 0 ? $classScores->avg() : 0;
+                    $difference = $studentAvg - $classAvg;
+                    
+                    $performanceStatus = $difference > 5 ? 'Above Average' : 
+                                       ($difference < -5 ? 'Below Average' : 'At Average');
+                    $statusColor = $difference > 5 ? 'text-green-600' : 
+                                 ($difference < -5 ? 'text-red-600' : 'text-yellow-600');
+                    $statusBg = $difference > 5 ? 'bg-green-100' : 
+                               ($difference < -5 ? 'bg-red-100' : 'bg-yellow-100');
+                @endphp
+                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 class="font-semibold text-sm mb-3">{{ $type->name }}</h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Student Avg:</span>
+                            <span class="font-medium">{{ number_format($studentAvg, 1) }}%</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Class Avg:</span>
+                            <span class="font-medium">{{ number_format($classAvg, 1) }}%</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Difference:</span>
+                            <span class="font-medium {{ $difference >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                {{ $difference >= 0 ? '+' : '' }}{{ number_format($difference, 1) }}%
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <span class="inline-block px-2 py-1 rounded-full text-xs font-medium {{ $statusBg }} {{ $statusColor }}">
+                                {{ $performanceStatus }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            
+            <!-- Overall Performance Summary -->
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+                @php
+                    $overallStudentAvg = $analytics['overall_average'];
+                    $overallClassAvg = $assessmentTypes->map(function($type) {
+                        return $type->assessments->map(function($a) {
+                            $scores = $a->scores->filter(function($score) {
+                                return $score->score !== null;
+                            });
+                            $max = $a->max_score ?? 0;
+                            if ($scores->count() > 0 && $max > 0) {
+                                return round(($scores->avg('score') / $max) * 100, 1);
+                            }
+                            return null;
+                        })->filter()->avg();
+                    })->filter()->avg();
+                    
+                    $overallDifference = $overallStudentAvg - $overallClassAvg;
+                    $overallStatus = $overallDifference > 5 ? 'Performing Above Class Average' : 
+                                   ($overallDifference < -5 ? 'Performing Below Class Average' : 'Performing At Class Average');
+                    $overallColor = $overallDifference > 5 ? 'text-green-600' : 
+                                  ($overallDifference < -5 ? 'text-red-600' : 'text-yellow-600');
+                    $overallBg = $overallDifference > 5 ? 'bg-green-100' : 
+                                ($overallDifference < -5 ? 'bg-red-100' : 'bg-yellow-100');
+                @endphp
+                <div class="text-center">
+                    <h3 class="text-lg font-semibold mb-2">Overall Performance Summary</h3>
+                    <div class="flex justify-center items-center gap-6 mb-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">{{ number_format($overallStudentAvg, 1) }}%</div>
+                            <div class="text-sm text-gray-600">Student Average</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-gray-600">{{ number_format($overallClassAvg, 1) }}%</div>
+                            <div class="text-sm text-gray-600">Class Average</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold {{ $overallDifference >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                {{ $overallDifference >= 0 ? '+' : '' }}{{ number_format($overallDifference, 1) }}%
+                            </div>
+                            <div class="text-sm text-gray-600">Difference</div>
+                        </div>
+                    </div>
+                    <div class="inline-block px-4 py-2 rounded-full text-sm font-medium {{ $overallBg }} {{ $overallColor }}">
+                        {{ $overallStatus }}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -388,37 +776,151 @@ new Chart(document.getElementById('radarChart').getContext('2d'), {
     }
 });
 
-// Original Line Charts
+// Assessment Type Radar Chart
+const assessmentTypeLabels = @json($assessmentTypeLabels);
+const assessmentTypeData = @json($assessmentTypeData);
+
+const assessmentTypeRadarData = {
+    labels: assessmentTypeLabels,
+    datasets: [{
+        label: '{{ $student->first_name }} Performance',
+        data: assessmentTypeData,
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 2,
+        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+    }]
+};
+
+new Chart(document.getElementById('assessmentTypeRadarChart').getContext('2d'), {
+    type: 'radar',
+    data: assessmentTypeRadarData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            r: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    stepSize: 20
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return `${assessmentTypeLabels[context.dataIndex]}: ${assessmentTypeData[context.dataIndex]}%`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Enhanced Line Charts with Class Comparison
 @foreach($assessmentTypes as $type)
     const labels{{ $type->id }} = @json($type->assessments->pluck('name'));
-    const percents{{ $type->id }} = @json($type->assessments->map(function($a) use ($student) {
+    const studentPercents{{ $type->id }} = @json($type->assessments->map(function($a) use ($student) {
         $score = $a->scores->where('student_id', $student->id)->first();
         $max = $a->max_score ?? 0;
         return ($score && $score->score !== null && $max > 0) ? round(($score->score / $max) * 100, 1) : null;
     }));
+    const classPercents{{ $type->id }} = @json($type->assessments->map(function($a) {
+        $scores = $a->scores->filter(function($score) {
+            return $score->score !== null;
+        });
+        $max = $a->max_score ?? 0;
+        if ($scores->count() > 0 && $max > 0) {
+            return round(($scores->avg('score') / $max) * 100, 1);
+        }
+        return null;
+    }));
+    
     new Chart(document.getElementById('chart-{{ $type->id }}').getContext('2d'), {
         type: 'line',
         data: {
             labels: labels{{ $type->id }},
             datasets: [{
-                label: '{{ $type->name }} (%)',
-                data: percents{{ $type->id }},
+                label: '{{ $student->first_name }} ({{ $type->name }})',
+                data: studentPercents{{ $type->id }},
                 backgroundColor: 'rgba(54, 162, 235, 0.2)',
                 borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 2,
-                fill: true,
+                borderWidth: 3,
+                fill: false,
                 tension: 0.3,
                 pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+            }, {
+                label: 'Class Average ({{ $type->name }})',
+                data: classPercents{{ $type->id }},
+                backgroundColor: 'rgba(128, 128, 128, 0.1)',
+                borderColor: 'rgba(128, 128, 128, 0.8)',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                fill: false,
+                tension: 0.3,
+                pointBackgroundColor: 'rgba(128, 128, 128, 0.8)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1,
+                pointRadius: 4,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             aspectRatio: 2.5,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        afterBody: function(context) {
+                            const studentValue = context[0].parsed.y;
+                            const classValue = context[1]?.parsed.y;
+                            if (studentValue !== null && classValue !== null) {
+                                const diff = studentValue - classValue;
+                                const status = diff > 0 ? 'Above' : diff < 0 ? 'Below' : 'At';
+                                return `Performance: ${status} class average`;
+                            }
+                            return '';
+                        }
+                    }
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 100
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Score (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Assessments'
+                    }
                 }
             }
         }

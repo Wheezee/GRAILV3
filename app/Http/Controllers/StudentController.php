@@ -25,6 +25,21 @@ class StudentController extends Controller
         return view('teacher.student-analysis', compact('student', 'subject', 'classSection', 'assessmentTypes', 'term', 'analytics'));
     }
     
+    public function showClassAnalytics($subjectId, $classSectionId, $term)
+    {
+        $subject = Subject::findOrFail($subjectId);
+        $classSection = ClassSection::where('id', $classSectionId)->where('subject_id', $subjectId)->firstOrFail();
+        $students = $classSection->students()->orderBy('last_name')->orderBy('first_name')->get();
+        $assessmentTypes = $subject->assessmentTypes()->where('term', $term)->with(['assessments' => function($query) use ($term) {
+            $query->where('term', $term);
+        }, 'assessments.scores'])->orderBy('order')->get();
+        
+        // Calculate comprehensive class analytics
+        $analytics = $this->calculateClassAnalytics($students, $assessmentTypes, $term, $classSection);
+        
+        return view('teacher.class-analytics', compact('students', 'subject', 'classSection', 'assessmentTypes', 'term', 'analytics'));
+    }
+
     public function getAnalytics($subjectId, $classSectionId, $term)
     {
         $classSection = \App\Models\ClassSection::where('id', $classSectionId)->where('subject_id', $subjectId)->firstOrFail();
@@ -89,6 +104,215 @@ class StudentController extends Controller
         ]);
     }
     
+    private function calculateClassAnalytics($students, $assessmentTypes, $term, $classSection)
+    {
+        $analytics = [
+            'student_rankings' => [],
+            'grade_distribution' => [],
+            'assessment_difficulty' => [],
+            'performance_trends' => [],
+            'risk_distribution' => [],
+            'class_stats' => [],
+            'student_metrics' => []
+        ];
+        
+        // Calculate student rankings with gap indicators
+        $studentRankings = [];
+        $metricsService = app(\App\Services\StudentMetricsService::class);
+        
+        foreach ($students as $student) {
+            $currentGrade = $this->calculateStudentOverallGrade($student, $assessmentTypes, $term);
+            
+            // Calculate ML risk prediction
+            $riskData = $metricsService->calculateStudentRisk($student, $assessmentTypes, $term);
+            
+            // Get student metrics for debug button
+            $studentMetrics = $metricsService->calculateStudentMetrics($student->id, $classSection->id, $term);
+            
+            $studentRankings[] = [
+                'student' => $student,
+                'current_grade' => $currentGrade,
+                'risk_level' => $riskData['risk_level'],
+                'risk_score' => $riskData['risk_score']
+            ];
+            
+            // Store metrics for debug button
+            $analytics['student_metrics'][$student->id] = $studentMetrics;
+            
+            // Store individual assessment scores for correlation analysis
+            $analytics['student_assessment_scores'][$student->id] = [];
+            
+            // Calculate assessment type averages
+            $analytics['student_type_averages'][$student->id] = [];
+            
+            foreach ($assessmentTypes as $type) {
+                $typeScores = [];
+                foreach ($type->assessments as $assessment) {
+                    $score = $assessment->scores->where('student_id', $student->id)->first();
+                    if ($score && $score->score !== null && $assessment->max_score > 0) {
+                        $percentage = ($score->score / $assessment->max_score) * 100;
+                        $analytics['student_assessment_scores'][$student->id][$assessment->name] = $percentage;
+                        $typeScores[] = $percentage;
+                    } else {
+                        $analytics['student_assessment_scores'][$student->id][$assessment->name] = null;
+                    }
+                }
+                
+                // Calculate average for this assessment type
+                if (!empty($typeScores)) {
+                    $analytics['student_type_averages'][$student->id][$type->name] = array_sum($typeScores) / count($typeScores);
+                } else {
+                    $analytics['student_type_averages'][$student->id][$type->name] = null;
+                }
+            }
+        }
+        
+        // Sort by current grade (descending) and assign ranks
+        usort($studentRankings, function($a, $b) {
+            return $b['current_grade'] <=> $a['current_grade'];
+        });
+        
+        // Calculate gaps from the student above them
+        foreach ($studentRankings as $index => &$ranking) {
+            $ranking['rank'] = $index + 1;
+            
+            if ($index === 0) {
+                // #1 student has no gap
+                $ranking['gap'] = 0;
+            } else {
+                // Calculate gap from the student above them (negative because they need to gain this amount)
+                $previousStudentGrade = $studentRankings[$index - 1]['current_grade'];
+                $ranking['gap'] = -($previousStudentGrade - $ranking['current_grade']);
+            }
+        }
+        
+        $analytics['student_rankings'] = $studentRankings;
+        
+        // Calculate grade distribution
+        $grades = array_column($studentRankings, 'current_grade');
+        $analytics['grade_distribution'] = [
+            'excellent' => count(array_filter($grades, fn($g) => $g >= 90)),
+            'good' => count(array_filter($grades, fn($g) => $g >= 80 && $g < 90)),
+            'satisfactory' => count(array_filter($grades, fn($g) => $g >= 70 && $g < 80)),
+            'needs_improvement' => count(array_filter($grades, fn($g) => $g >= 60 && $g < 70)),
+            'failing' => count(array_filter($grades, fn($g) => $g < 60))
+        ];
+        
+        // Calculate assessment difficulty
+        $assessmentDifficulty = [];
+        foreach ($assessmentTypes as $type) {
+            foreach ($type->assessments as $assessment) {
+                $scores = $assessment->scores->map(function($score) use ($assessment) {
+                    if ($score->score !== null && $assessment->max_score > 0) {
+                        return ($score->score / $assessment->max_score) * 100;
+                    }
+                    return null;
+                })->filter()->values();
+                
+                if ($scores->count() > 0) {
+                    $assessmentDifficulty[] = [
+                        'name' => $assessment->name,
+                        'type' => $type->name,
+                        'average_score' => $scores->avg(),
+                        'difficulty_level' => $scores->avg() >= 85 ? 'Easy' : ($scores->avg() >= 70 ? 'Medium' : 'Hard')
+                    ];
+                }
+            }
+        }
+        
+        // Sort by average score (ascending - hardest first)
+        usort($assessmentDifficulty, function($a, $b) {
+            return $a['average_score'] <=> $b['average_score'];
+        });
+        
+        $analytics['assessment_difficulty'] = $assessmentDifficulty;
+        
+        // Calculate class statistics
+        $analytics['class_stats'] = [
+            'total_students' => count($students),
+            'average_grade' => count($grades) > 0 ? array_sum($grades) / count($grades) : 0,
+            'highest_grade' => count($grades) > 0 ? max($grades) : 0,
+            'lowest_grade' => count($grades) > 0 ? min($grades) : 0,
+            'passing_rate' => count(array_filter($grades, fn($g) => $g >= 70)) / count($grades) * 100
+        ];
+        
+        return $analytics;
+    }
+    
+    private function calculateStudentOverallGrade($student, $assessmentTypes, $term)
+    {
+        $totalWeight = 0;
+        $weightedSum = 0;
+        
+        foreach ($assessmentTypes as $type) {
+            $typeScores = [];
+            foreach ($type->assessments as $assessment) {
+                $score = $assessment->scores->where('student_id', $student->id)->first();
+                if ($score && $score->score !== null && $assessment->max_score > 0) {
+                    $percentage = ($score->score / $assessment->max_score) * 100;
+                    $typeScores[] = $percentage;
+                }
+            }
+            
+            if (count($typeScores) > 0) {
+                $typeAverage = array_sum($typeScores) / count($typeScores);
+                $weightedSum += ($typeAverage * $type->weight);
+                $totalWeight += $type->weight;
+            }
+        }
+        
+        return $totalWeight > 0 ? $weightedSum / $totalWeight : 0;
+    }
+    
+    private function calculateStudentPreviousGrade($student, $assessmentTypes, $term)
+    {
+        // Calculate improvement based on assessment order (first half vs second half)
+        $allAssessments = collect();
+        foreach ($assessmentTypes as $type) {
+            foreach ($type->assessments as $assessment) {
+                $allAssessments->push($assessment);
+            }
+        }
+        
+        // Sort assessments by date or order
+        $sortedAssessments = $allAssessments->sortBy('created_at');
+        $totalAssessments = $sortedAssessments->count();
+        
+        if ($totalAssessments < 2) {
+            return 0; // Not enough data for improvement calculation
+        }
+        
+        // Split into first half and second half
+        $firstHalf = $sortedAssessments->take(ceil($totalAssessments / 2));
+        $secondHalf = $sortedAssessments->slice(ceil($totalAssessments / 2));
+        
+        // Calculate average for first half
+        $firstHalfScores = [];
+        foreach ($firstHalf as $assessment) {
+            $score = $assessment->scores->where('student_id', $student->id)->first();
+            if ($score && $score->score !== null && $assessment->max_score > 0) {
+                $percentage = ($score->score / $assessment->max_score) * 100;
+                $firstHalfScores[] = $percentage;
+            }
+        }
+        
+        // Calculate average for second half
+        $secondHalfScores = [];
+        foreach ($secondHalf as $assessment) {
+            $score = $assessment->scores->where('student_id', $student->id)->first();
+            if ($score && $score->score !== null && $assessment->max_score > 0) {
+                $percentage = ($score->score / $assessment->max_score) * 100;
+                $secondHalfScores[] = $percentage;
+            }
+        }
+        
+        $firstHalfAvg = count($firstHalfScores) > 0 ? array_sum($firstHalfScores) / count($firstHalfScores) : 0;
+        $secondHalfAvg = count($secondHalfScores) > 0 ? array_sum($secondHalfScores) / count($secondHalfScores) : 0;
+        
+        // Return the difference (positive means improvement)
+        return $secondHalfAvg - $firstHalfAvg;
+    }
+
     private function calculateStudentAnalytics($student, $assessmentTypes, $term)
     {
         $allScores = [];

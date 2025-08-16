@@ -976,6 +976,7 @@ Route::prefix('api/ml')->middleware('auth')->group(function () {
 });
 
 Route::get('/subjects/{subject}/classes/{classSection}/analytics/{term}', [\App\Http\Controllers\StudentController::class, 'getAnalytics'])->name('class.analytics');
+Route::get('/subjects/{subject}/classes/{classSection}/class-analytics/{term}', [\App\Http\Controllers\StudentController::class, 'showClassAnalytics'])->name('class.analytics.page');
 
 // Annotation Routes
 Route::prefix('api/annotations')->middleware('auth')->group(function () {
