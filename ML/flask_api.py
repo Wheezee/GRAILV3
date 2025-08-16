@@ -10,7 +10,12 @@ CORS(app)  # Enable CORS for cross-origin requests
 model = joblib.load('grail_rf_model.pkl')
 
 # Risk labels mapping
-risk_labels = ['risk_at_risk', 'risk_chronic_procrastinator', 'risk_incomplete']
+risk_labels = [
+    'risk_at_risk',
+    'risk_chronic_procrastinator',
+    'risk_incomplete',
+    'risk_inconsistent_performer'  # Added new risk label
+]
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
@@ -82,6 +87,12 @@ def predict():
                         'code': 'risk_incomplete',
                         'label': 'Incomplete Work',
                         'description': 'Student has incomplete assignments'
+                    })
+                elif risk == 'risk_inconsistent_performer':
+                    risk_details.append({
+                        'code': 'risk_inconsistent_performer',
+                        'label': 'Inconsistent Performer',
+                        'description': 'Student has highly variable performance'
                     })
             
             response = {

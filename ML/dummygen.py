@@ -13,6 +13,7 @@ def generate_dummy_data(num_samples=300):
         at_risk = 1 if avg_score_pct < 75 or missed_submission_pct >= 20 else 0
         chronic_procrastinator = 1 if late_submission_pct >= 30 else 0
         incomplete = 1 if missed_submission_pct >= 20 else 0
+        inconsistent_performer = 1 if 45 <= variation_score_pct <= 55 else 0
 
         data.append({
             'avg_score_pct': avg_score_pct,
@@ -21,11 +22,12 @@ def generate_dummy_data(num_samples=300):
             'missed_submission_pct': missed_submission_pct,
             'risk_at_risk': at_risk,
             'risk_chronic_procrastinator': chronic_procrastinator,
-            'risk_incomplete': incomplete
+            'risk_incomplete': incomplete,
+            'risk_inconsistent_performer': inconsistent_performer
         })
 
     return pd.DataFrame(data)
 
 df = generate_dummy_data()
 df.to_csv('grail.csv', index=False)
-print("✅ Dummy training data with multi-labels saved to training_data.csv")
+print("✅ Dummy training data with multi-labels (including inconsistent performer) saved to grail.csv")

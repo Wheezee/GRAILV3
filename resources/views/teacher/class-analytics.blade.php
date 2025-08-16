@@ -195,25 +195,15 @@
                                     'late_submission_pct' => $analytics['student_metrics'][$ranking['student']->id]['late_submission_pct'] ?? 0,
                                     'missed_submission_pct' => $analytics['student_metrics'][$ranking['student']->id]['missed_submission_pct'] ?? 0
                                 ]) }}">
-                                    <div class="ml-loading hidden">
-                                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-gray-400"></i>
-                                    </div>
-                                    <div class="ml-risk-display hidden">
-                                        <div class="risk-badges"></div>
-                                    </div>
-                                    <div class="ml-error hidden">
-                                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500" title="ML service unavailable"></i>
-                                    </div>
+                                <div class="ml-loading hidden">
+                                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-gray-400"></i>
                                 </div>
-                                <!-- Debug Button -->
-                                <button onclick="showMLDebug('{{ $ranking['student']->id }}', {{ json_encode([
-                                    'avg_score_pct' => $analytics['student_metrics'][$ranking['student']->id]['avg_score_pct'] ?? 0,
-                                    'variation_score_pct' => $analytics['student_metrics'][$ranking['student']->id]['variation_score_pct'] ?? 0,
-                                    'late_submission_pct' => $analytics['student_metrics'][$ranking['student']->id]['late_submission_pct'] ?? 0,
-                                    'missed_submission_pct' => $analytics['student_metrics'][$ranking['student']->id]['missed_submission_pct'] ?? 0
-                                ]) }})" class="ml-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Debug ML Response">
-                                    <i data-lucide="bug" class="w-3 h-3"></i>
-                                </button>
+                                <div class="ml-risk-display hidden">
+                                    <div class="risk-badges"></div>
+                                </div>
+                                <div class="ml-error hidden">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 text-red-500" title="ML service unavailable"></i>
+                                </div>
                             </div>
                         </td>
                              <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -255,15 +245,29 @@
         </h2>
         
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Correlation Analysis</h3>
-                    <p class="text-gray-600 dark:text-gray-400">Analyze relationships between different variables in your class data</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Correlation Tool Card -->
+                <div class="flex flex-col justify-between h-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Correlation Analysis</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Analyze relationships between different variables in your class data</p>
+                    </div>
+                    <button onclick="openCorrelationModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors mt-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        Open Tool
+                    </button>
                 </div>
-                <button onclick="openCorrelationModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
-                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                    Open Tool
-                </button>
+                <!-- Regression Tool Card -->
+                <div class="flex flex-col justify-between h-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Regression Analysis</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Model and predict outcomes based on student performance data</p>
+                    </div>
+                    <button onclick="openRegressionModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors mt-2">
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        Open Regression Tool
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -577,6 +581,121 @@
     <div class="flex justify-center p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
       <button onclick="closeCorrelationModal()" 
               class="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Regression Analysis Modal -->
+<div id="regressionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-2 sm:p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 transform transition-all max-h-[90vh] flex flex-col">
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-3">
+        <i data-lucide="trending-up" class="w-6 h-6 text-green-600"></i>
+        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Regression Analysis</h3>
+      </div>
+      <button onclick="closeRegressionModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+    <!-- Modal Body -->
+    <div class="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
+      <!-- Variable Selection -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Variable X</label>
+          <select id="regressionX" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+            <option value="">Select Variable X</option>
+            <optgroup label="Global Metrics">
+              <option value="current_grade">Current Grade (%)</option>
+              <option value="avg_score_pct">Average Score (%)</option>
+              <option value="variation_score_pct">Score Variation (%)</option>
+              <option value="late_submission_pct">Late Submissions (%)</option>
+              <option value="missed_submission_pct">Missed Submissions (%)</option>
+              <option value="risk_score">Risk Score (%)</option>
+              <option value="completed_assessments">Completed Assessments</option>
+              <option value="total_assessments">Total Assessments</option>
+            </optgroup>
+            <optgroup label="Assessment Type Averages">
+              @foreach($assessmentTypes as $type)
+                <option value="type_avg_{{ $type->name }}">{{ $type->name }} Average (%)</option>
+              @endforeach
+            </optgroup>
+            <optgroup label="Individual Assessments">
+              @foreach($analytics['assessment_difficulty'] as $assessment)
+                <option value="assessment_{{ $assessment['name'] }}">{{ $assessment['name'] }} (%)</option>
+              @endforeach
+            </optgroup>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Variable Y</label>
+          <select id="regressionY" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+            <option value="">Select Variable Y</option>
+            <optgroup label="Global Metrics">
+              <option value="current_grade">Current Grade (%)</option>
+              <option value="avg_score_pct">Average Score (%)</option>
+              <option value="variation_score_pct">Score Variation (%)</option>
+              <option value="late_submission_pct">Late Submissions (%)</option>
+              <option value="missed_submission_pct">Missed Submissions (%)</option>
+              <option value="risk_score">Risk Score (%)</option>
+              <option value="completed_assessments">Completed Assessments</option>
+              <option value="total_assessments">Total Assessments</option>
+            </optgroup>
+            <optgroup label="Assessment Type Averages">
+              @foreach($assessmentTypes as $type)
+                <option value="type_avg_{{ $type->name }}">{{ $type->name }} Average (%)</option>
+              @endforeach
+            </optgroup>
+            <optgroup label="Individual Assessments">
+              @foreach($analytics['assessment_difficulty'] as $assessment)
+                <option value="assessment_{{ $assessment['name'] }}">{{ $assessment['name'] }} (%)</option>
+              @endforeach
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <!-- Run Regression Button -->
+      <div class="flex justify-center">
+        <button onclick="runRegression()" class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+          Run Regression
+        </button>
+      </div>
+      <!-- Results Section -->
+      <div id="regressionResults" class="hidden space-y-4">
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-3">Regression Results</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Regression Equation</p>
+              <p id="regressionEquation" class="text-lg font-bold text-green-600"></p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600 dark:text-gray-400">R² Value</p>
+              <p id="regressionR2" class="text-lg font-semibold"></p>
+            </div>
+          </div>
+        </div>
+        <!-- Scatter Plot with Regression Line -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-3">Scatter Plot with Regression Line</h4>
+          <div class="h-64">
+            <canvas id="regressionScatterPlot"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Loading State -->
+      <div id="regressionLoading" class="hidden text-center">
+        <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-green-500 mx-auto mb-2"></i>
+        <p class="text-gray-600 dark:text-gray-400">Running regression analysis...</p>
+      </div>
+    </div>
+    <!-- Modal Footer -->
+    <div class="flex justify-center p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+      <button onclick="closeRegressionModal()" class="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors">
         Close
       </button>
     </div>
@@ -904,12 +1023,6 @@ function loadMLRisks() {
         const riskBadges = indicator.querySelector('.risk-badges');
         renderRiskBadges(riskBadges, data.risks);
         
-        // Add risk score
-        const scoreDiv = document.createElement('div');
-        scoreDiv.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
-        scoreDiv.textContent = `${Math.min(100, data.risk_count * 25)}%`;
-        riskBadges.appendChild(scoreDiv);
-        
         indicator.querySelector('.ml-risk-display').classList.remove('hidden');
       } else {
         // No risks detected
@@ -919,7 +1032,6 @@ function loadMLRisks() {
             <i data-lucide="shield-check" class="w-3 h-3"></i>
             Low Risk
           </span>
-          <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">0%</div>
         `;
         indicator.querySelector('.ml-risk-display').classList.remove('hidden');
       }
@@ -1537,6 +1649,229 @@ function createAssessmentScatterPlots() {
 document.addEventListener('DOMContentLoaded', function() {
   createAssessmentScatterPlots();
 });
+
+// Regression Modal Functions
+let regressionChart = null;
+
+function openRegressionModal() {
+  document.getElementById('regressionModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRegressionModal() {
+  document.getElementById('regressionModal').classList.add('hidden');
+  document.body.style.overflow = 'auto';
+  // Reset form
+  document.getElementById('regressionX').value = '';
+  document.getElementById('regressionY').value = '';
+  document.getElementById('regressionResults').classList.add('hidden');
+  document.getElementById('regressionLoading').classList.add('hidden');
+  if (regressionChart) {
+    regressionChart.destroy();
+    regressionChart = null;
+  }
+}
+
+function runRegression() {
+  const xVar = document.getElementById('regressionX').value;
+  const yVar = document.getElementById('regressionY').value;
+  if (!xVar || !yVar) {
+    alert('Please select both variables');
+    return;
+  }
+  if (xVar === yVar) {
+    alert('Please select different variables');
+    return;
+  }
+  document.getElementById('regressionLoading').classList.remove('hidden');
+  document.getElementById('regressionResults').classList.add('hidden');
+
+  // Get student data (reuse from correlation)
+  const studentData = @json($analytics['student_rankings']);
+  const studentMetrics = @json($analytics['student_metrics']);
+  const studentAssessmentScores = @json($analytics['student_assessment_scores']);
+  const studentTypeAverages = @json($analytics['student_type_averages']);
+
+  const xValues = [];
+  const yValues = [];
+  const labels = [];
+
+  studentData.forEach(ranking => {
+    const studentId = ranking.student.id;
+    const metrics = studentMetrics[studentId] || {};
+    let xValue, yValue;
+    // X value
+    if (xVar.startsWith('assessment_')) {
+      const assessmentName = xVar.replace('assessment_', '');
+      xValue = studentAssessmentScores[studentId]?.[assessmentName] || null;
+    } else if (xVar.startsWith('type_avg_')) {
+      const typeName = xVar.replace('type_avg_', '');
+      xValue = studentTypeAverages[studentId]?.[typeName] || null;
+    } else {
+      switch(xVar) {
+        case 'current_grade': xValue = ranking.current_grade; break;
+        case 'avg_score_pct': xValue = metrics.avg_score_pct || 0; break;
+        case 'variation_score_pct': xValue = metrics.variation_score_pct || 0; break;
+        case 'late_submission_pct': xValue = metrics.late_submission_pct || 0; break;
+        case 'missed_submission_pct': xValue = metrics.missed_submission_pct || 0; break;
+        case 'risk_score': xValue = ranking.risk_score || 0; break;
+        case 'completed_assessments': xValue = metrics.completed_assessments || 0; break;
+        case 'total_assessments': xValue = metrics.total_assessments || 0; break;
+      }
+    }
+    // Y value
+    if (yVar.startsWith('assessment_')) {
+      const assessmentName = yVar.replace('assessment_', '');
+      yValue = studentAssessmentScores[studentId]?.[assessmentName] || null;
+    } else if (yVar.startsWith('type_avg_')) {
+      const typeName = yVar.replace('type_avg_', '');
+      yValue = studentTypeAverages[studentId]?.[typeName] || null;
+    } else {
+      switch(yVar) {
+        case 'current_grade': yValue = ranking.current_grade; break;
+        case 'avg_score_pct': yValue = metrics.avg_score_pct || 0; break;
+        case 'variation_score_pct': yValue = metrics.variation_score_pct || 0; break;
+        case 'late_submission_pct': yValue = metrics.late_submission_pct || 0; break;
+        case 'missed_submission_pct': yValue = metrics.missed_submission_pct || 0; break;
+        case 'risk_score': yValue = ranking.risk_score || 0; break;
+        case 'completed_assessments': yValue = metrics.completed_assessments || 0; break;
+        case 'total_assessments': yValue = metrics.total_assessments || 0; break;
+      }
+    }
+    if (xValue !== null && yValue !== null && !isNaN(xValue) && !isNaN(yValue)) {
+      xValues.push(xValue);
+      yValues.push(yValue);
+      labels.push(`${ranking.student.first_name} ${ranking.student.last_name}`);
+    }
+  });
+  if (xValues.length < 2) {
+    alert('Not enough valid data points for regression analysis');
+    document.getElementById('regressionLoading').classList.add('hidden');
+    return;
+  }
+  // Calculate regression
+  const { slope, intercept, r2 } = linearRegression(xValues, yValues);
+  // Display results
+  document.getElementById('regressionEquation').textContent = `Y = ${slope.toFixed(3)}X + ${intercept.toFixed(3)}`;
+  document.getElementById('regressionR2').textContent = r2.toFixed(4);
+  // Plot
+  createRegressionScatterPlot(xValues, yValues, labels, slope, intercept, xVar, yVar);
+  document.getElementById('regressionResults').classList.remove('hidden');
+  document.getElementById('regressionLoading').classList.add('hidden');
+}
+
+function linearRegression(x, y) {
+  const n = x.length;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+  const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  const meanY = sumY / n;
+  const ssTot = y.reduce((sum, yi) => sum + Math.pow(yi - meanY, 2), 0);
+  const ssRes = y.reduce((sum, yi, i) => sum + Math.pow(yi - (slope * x[i] + intercept), 2), 0);
+  const r2 = 1 - ssRes / ssTot;
+  return { slope, intercept, r2 };
+}
+
+function createRegressionScatterPlot(xValues, yValues, labels, slope, intercept, varX, varY) {
+  if (regressionChart) {
+    regressionChart.destroy();
+  }
+  const ctx = document.getElementById('regressionScatterPlot').getContext('2d');
+  // Scatter data
+  const scatterData = xValues.map((x, i) => ({ x: x, y: yValues[i] }));
+  // Regression line (min to max x)
+  const minX = Math.min(...xValues);
+  const maxX = Math.max(...xValues);
+  const regLine = [
+    { x: minX, y: slope * minX + intercept },
+    { x: maxX, y: slope * maxX + intercept }
+  ];
+  regressionChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Students',
+          data: scatterData,
+          backgroundColor: 'rgba(16, 185, 129, 0.6)',
+          borderColor: 'rgba(16, 185, 129, 1)',
+          borderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8
+        },
+        {
+          label: 'Regression Line',
+          type: 'line',
+          data: regLine,
+          fill: false,
+          borderColor: 'rgba(34,197,94,1)',
+          backgroundColor: 'rgba(34,197,94,0.2)',
+          borderWidth: 3,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            title: function(context) {
+              const index = context[0].dataIndex;
+              if (context[0].datasetIndex === 0) {
+                return labels[index] || `Point ${index + 1}`;
+              }
+              return 'Regression Line';
+            },
+            label: function(context) {
+              if (context.dataset.label === 'Regression Line') {
+                return `Y = ${slope.toFixed(3)}X + ${intercept.toFixed(3)}`;
+              }
+              return [
+                `${getVariableLabel(varX)}: ${context.parsed.x}`,
+                `${getVariableLabel(varY)}: ${context.parsed.y}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: getVariableLabel(varX),
+            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#374151'
+          },
+          ticks: {
+            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#374151'
+          },
+          grid: {
+            color: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: getVariableLabel(varY),
+            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#374151'
+          },
+          ticks: {
+            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#374151'
+          },
+          grid: {
+            color: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'
+          }
+        }
+      }
+    }
+  });
+}
 
 </script>
 @endsection 

@@ -46,6 +46,8 @@
                     </svg>
                     Account Verified
                 </div>
+                <!-- App Link Button -->
+                <button onclick="openAppLinkModal()" class="mt-6 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors duration-200">Show App Link</button>
             </div>
         </div>
         <!-- User Info Card -->
@@ -75,11 +77,28 @@
             </div>
         </div>
     </div>
+    <div id="appLinkModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
+        <div class="bg-white rounded-xl shadow-lg p-8 max-w-md w-full relative">
+            <button onclick="closeAppLinkModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">App Link</h2>
+            <p class="mb-2 text-gray-700">You can access this app at:</p>
+            <div class="bg-gray-100 rounded px-3 py-2 font-mono text-blue-700 select-all break-all mb-4">
+                {{ request()->getScheme() }}://{{ request()->getHost() }}{{ request()->getPort() ? ':' . request()->getPort() : '' }}
+            </div>
+            <button onclick="closeAppLinkModal()" class="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">Close</button>
+        </div>
+    </div>
     <script>
         function confirmLogout() {
             if (confirm('Are you sure you want to log out?')) {
                 document.getElementById('logoutForm').submit();
             }
+        }
+        function openAppLinkModal() {
+            document.getElementById('appLinkModal').classList.remove('hidden');
+        }
+        function closeAppLinkModal() {
+            document.getElementById('appLinkModal').classList.add('hidden');
         }
     </script>
 </body>

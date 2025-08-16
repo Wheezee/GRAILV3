@@ -4,6 +4,7 @@
 <div class="mb-8">
   <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Dashboard</h2>
   <p class="text-gray-600 dark:text-gray-400 mb-6">Welcome back!</p>
+  {{-- <button onclick="openAppLinkModal()" class="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors duration-200">Show App Link</button> --}}
 
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
     <!-- Subjects Count -->
@@ -69,7 +70,8 @@
     <div class="mt-3">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100" id="assessmentModalTitle">Select Class Section</h3>
-        <button onclick="closeAssessmentClassSelectorModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+        
+        <button onclick="closeAssessmentClassSelectorModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" style="display: hidden;>
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -79,6 +81,26 @@
         <!-- Class options will be populated here -->
       </div>
     </div>
+  </div>
+</div>
+@php
+    $localIp = getHostByName(getHostName());
+    $port = request()->getPort();
+    $scheme = request()->getScheme();
+@endphp
+<!-- App Link Modal -->
+<div id="appLinkModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
+  <div class="bg-white rounded-xl shadow-lg p-8 max-w-md w-full relative">
+    <button onclick="closeAppLinkModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+    <h2 class="text-2xl font-bold mb-4 text-gray-900">App Link</h2>
+    <p class="mb-2 text-gray-700">You can access this app at:</p>
+    <div class="bg-gray-100 rounded px-3 py-2 font-mono text-blue-700 select-all break-all mb-4">
+      {{ $scheme }}://{{ $localIp }}{{ $port ? ':' . $port : '' }}
+    </div>
+    <div class="flex justify-center mb-4">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ urlencode($scheme . '://' . $localIp . ($port ? (':' . $port) : '')) }}" alt="App Link QR Code" class="rounded shadow" />
+    </div>
+    <button onclick="closeAppLinkModal()" class="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">Close</button>
   </div>
 </div>
 <script>
@@ -128,5 +150,12 @@ document.getElementById('assessmentClassSelectorModal').addEventListener('click'
     closeAssessmentClassSelectorModal();
   }
 });
+
+function openAppLinkModal() {
+  document.getElementById('appLinkModal').classList.remove('hidden');
+}
+function closeAppLinkModal() {
+  document.getElementById('appLinkModal').classList.add('hidden');
+}
 </script>
 @endsection

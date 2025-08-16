@@ -20,7 +20,8 @@ X = df[[
 y = df[[
     'risk_at_risk',
     'risk_chronic_procrastinator',
-    'risk_incomplete'
+    'risk_incomplete',
+    'risk_inconsistent_performer'
 ]]
 
 # Train-test split
