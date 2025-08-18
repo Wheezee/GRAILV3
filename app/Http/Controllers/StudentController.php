@@ -201,6 +201,10 @@ class StudentController extends Controller
         // Calculate assessment difficulty
         $assessmentDifficulty = [];
         foreach ($assessmentTypes as $type) {
+            // Hide Attendance from assessment-based analytics
+            if (strtolower($type->name) === 'attendance') {
+                continue;
+            }
             foreach ($type->assessments as $assessment) {
                 $scores = $assessment->scores->map(function($score) use ($assessment) {
                     if ($score->score !== null && $assessment->max_score > 0) {
@@ -214,15 +218,16 @@ class StudentController extends Controller
                         'name' => $assessment->name,
                         'type' => $type->name,
                         'average_score' => $scores->avg(),
-                        'difficulty_level' => $scores->avg() >= 85 ? 'Easy' : ($scores->avg() >= 70 ? 'Medium' : 'Hard')
+                        'difficulty_level' => $scores->avg() >= 85 ? 'Easy' : ($scores->avg() >= 70 ? 'Medium' : 'Hard'),
+                        'created_at' => optional($assessment->created_at)->toDateTimeString(),
                     ];
                 }
             }
         }
         
-        // Sort by average score (ascending - hardest first)
+        // Keep insertion order (by created_at within type) for chronological display needs; fallback to created_at ascending
         usort($assessmentDifficulty, function($a, $b) {
-            return $a['average_score'] <=> $b['average_score'];
+            return strcmp((string)$a['created_at'], (string)$b['created_at']);
         });
         
         $analytics['assessment_difficulty'] = $assessmentDifficulty;
@@ -241,15 +246,20 @@ class StudentController extends Controller
     
     private function calculateStudentOverallGrade($student, $assessmentTypes, $term)
     {
-        $totalWeight = 0;
         $weightedSum = 0;
+        $availableWeight = 0;
         
         foreach ($assessmentTypes as $type) {
             $typeScores = [];
             foreach ($type->assessments as $assessment) {
                 $score = $assessment->scores->where('student_id', $student->id)->first();
-                if ($score && $score->score !== null && $assessment->max_score > 0) {
-                    $percentage = ($score->score / $assessment->max_score) * 100;
+                // Treat missing as 0 for grade computation; keep nulls elsewhere
+                if ($assessment->max_score > 0) {
+                    if ($score && $score->score !== null) {
+                        $percentage = ($score->score / $assessment->max_score) * 100;
+                    } else {
+                        $percentage = 0; // missing counts as 0%
+                    }
                     $typeScores[] = $percentage;
                 }
             }
@@ -257,11 +267,17 @@ class StudentController extends Controller
             if (count($typeScores) > 0) {
                 $typeAverage = array_sum($typeScores) / count($typeScores);
                 $weightedSum += ($typeAverage * $type->weight);
-                $totalWeight += $type->weight;
+                $availableWeight += $type->weight;
             }
+            // If no assessments exist for this type, don't include its weight
         }
         
-        return $totalWeight > 0 ? $weightedSum / $totalWeight : 0;
+        if ($availableWeight > 0) {
+            // Grade = weighted sum divided by sum of active weights (no extra scaling)
+            return round($weightedSum / $availableWeight, 1);
+        }
+        
+        return 0;
     }
     
     private function calculateStudentPreviousGrade($student, $assessmentTypes, $term)

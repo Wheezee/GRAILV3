@@ -18,7 +18,12 @@ class Assessment extends Model
         'due_date',
         'description',
         'order',
-        'term'
+        'term',
+        'is_quiz',
+        'unique_url',
+        'qr_code_enabled',
+        'auto_grade',
+        'expires_at'
     ];
 
     protected $casts = [
@@ -26,6 +31,10 @@ class Assessment extends Model
         'max_score' => 'decimal:2',
         'passing_score' => 'decimal:2',
         'warning_score' => 'decimal:2',
+        'is_quiz' => 'boolean',
+        'qr_code_enabled' => 'boolean',
+        'auto_grade' => 'boolean',
+        'expires_at' => 'datetime',
     ];
 
     public function assessmentType()
@@ -41,6 +50,16 @@ class Assessment extends Model
     public function annotations()
     {
         return $this->hasMany(AssessmentAnnotation::class);
+    }
+
+    public function questions()
+    {
+        return $this->hasMany(AssessmentQuestion::class);
+    }
+
+    public function tokens()
+    {
+        return $this->hasMany(AssessmentToken::class);
     }
 
     public function getStudentScore($studentId)
@@ -195,5 +214,73 @@ class Assessment extends Model
             'attendance_percentage' => $score->percentage_score,
             'present_days' => $presentDays
         ];
+    }
+
+    /**
+     * Check if the quiz has expired
+     */
+    public function isExpired(): bool
+    {
+        if (!$this->is_quiz || !$this->expires_at) {
+            return false;
+        }
+        
+        return now()->isAfter($this->expires_at);
+    }
+
+    /**
+     * Check if the quiz is active (not expired)
+     */
+    public function isActive(): bool
+    {
+        return !$this->isExpired();
+    }
+
+    /**
+     * Get the time remaining until expiration
+     */
+    public function getTimeUntilExpiration(): ?string
+    {
+        if (!$this->is_quiz || !$this->expires_at) {
+            return null;
+        }
+
+        if ($this->isExpired()) {
+            return 'Expired';
+        }
+
+        $diff = now()->diff($this->expires_at);
+        
+        if ($diff->days > 0) {
+            return $diff->days . ' day' . ($diff->days > 1 ? 's' : '') . ' remaining';
+        } elseif ($diff->h > 0) {
+            return $diff->h . ' hour' . ($diff->h > 1 ? 's' : '') . ' remaining';
+        } else {
+            return $diff->i . ' minute' . ($diff->i > 1 ? 's' : '') . ' remaining';
+        }
+    }
+
+    /**
+     * Extend the quiz expiration by 24 hours
+     */
+    public function extendExpiration(): void
+    {
+        if ($this->is_quiz) {
+            $this->update([
+                'expires_at' => now()->addDay()
+            ]);
+        }
+    }
+
+    /**
+     * Set the quiz to expire in 24 hours from now
+     */
+    public function setExpiration(): void
+    {
+        if ($this->is_quiz) {
+            $this->update([
+                'expires_at' => now()->addDay()
+            ]);
+        }
     }
 } 

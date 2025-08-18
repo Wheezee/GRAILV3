@@ -96,10 +96,24 @@
 
     <!-- Student Leaderboard Section -->
     <div class="mb-8">
-        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
-            <i data-lucide="trophy" class="w-8 h-8 text-yellow-500"></i>
-            Student Leaderboard
-        </h2>
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold flex items-center gap-3">
+                <i data-lucide="trophy" class="w-8 h-8 text-yellow-500"></i>
+                Student Leaderboard
+            </h2>
+            <div class="relative inline-block group">
+                <button type="button" class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Leaderboard grade categories info">
+                    <i data-lucide="help-circle" class="w-5 h-5 text-gray-500"></i>
+                </button>
+                <div class="hidden group-hover:block group-focus-within:block absolute right-0 top-full mt-0.5 w-80 z-20">
+                    <div class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                        <div class="font-semibold mb-1">About Performance Labels</div>
+                        <p>Achievement categories such as Excellent, Good, Satisfactory, and Failing serve as ordinal descriptors that summarize student performance within defined score ranges.</p>
+                        <div class="mt-2 text-[10px] text-gray-500">Source: <a href="https://www.deped.gov.ph/2015/04/01/do-8-s-2015-policy-guidelines-on-classroom-assessment-for-the-k-to-12-basic-education-program/" target="_blank" rel="noopener noreferrer" class="underline">DepEd</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="overflow-x-auto">
@@ -246,7 +260,8 @@
         
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Correlation Tool Card -->
+                @if(false)
+                <!-- Correlation Tool Card (hidden) -->
                 <div class="flex flex-col justify-between h-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Correlation Analysis</h3>
@@ -257,6 +272,18 @@
                     Open Correlation Tool
                 </button>
             </div>
+                @endif
+                <!-- Preset Analyses Card (moved before Regression) -->
+                <div class="flex flex-col justify-between h-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Preset Analyses</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Run predefined correlation analyses (IV → DV) and view results in a modal</p>
+                    </div>
+                    <button onclick="openPresetModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors mt-2">
+                        <i data-lucide="play-circle" class="w-4 h-4"></i>
+                        Open Preset Analyses
+                    </button>
+                </div>
                 <!-- Regression Tool Card -->
                 <div class="flex flex-col justify-between h-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <div>
@@ -274,12 +301,27 @@
 
     <!-- Analytics Dashboard -->
     <div class="space-y-8">
+        
         <!-- Grade Distribution -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-600"></i>
-                Grade Distribution
-            </h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-600"></i>
+                    Grade Distribution
+                </h3>
+                <div class="relative inline-block group">
+                    <button type="button" class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Grade categories info">
+                        <i data-lucide="help-circle" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                    <div class="hidden group-hover:block group-focus-within:block absolute right-0 top-full mt-0.5 w-80 z-20">
+                        <div class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                            <div class="font-semibold mb-1">About Grade Categories</div>
+                            <p>Achievement categories such as Excellent, Good, Satisfactory, and Failing serve as ordinal descriptors that summarize student performance within defined score ranges.</p>
+                            <div class="mt-2 text-[10px] text-gray-500">Source: <a href="https://www.deped.gov.ph/2015/04/01/do-8-s-2015-policy-guidelines-on-classroom-assessment-for-the-k-to-12-basic-education-program/" target="_blank" rel="noopener noreferrer" class="underline">DepEd</a></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="space-y-4">
                 @php
                     $totalStudents = $analytics['class_stats']['total_students'];
@@ -342,13 +384,37 @@
 
         <!-- Assessment Difficulty -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                <i data-lucide="target" class="w-5 h-5 text-purple-600"></i>
-                Assessment Difficulty
-            </h3>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                @foreach(array_slice($analytics['assessment_difficulty'], 0, 5) as $assessment)
-                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="target" class="w-5 h-5 text-purple-600"></i>
+                    Assessment Difficulty
+                </h3>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-600 dark:text-gray-400">Assessment</label>
+                    <select id="difficultyAssessmentSelect" class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"></select>
+                    <div class="relative inline-block group">
+                        <button type="button" class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Difficulty criteria info">
+                            <i data-lucide="help-circle" class="w-5 h-5 text-gray-500"></i>
+                        </button>
+                        <div class="hidden group-hover:block group-focus-within:block absolute right-0 top-full mt-0.5 w-80 z-20">
+                            <div class="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                                <div class="font-semibold mb-1">About Difficulty Labels</div>
+                                <p>We approximate item difficulty from average percent scores.</p>
+                                <ul class="list-disc ml-4 mt-1 space-y-0.5">
+                                    <li><b>Easy</b>: avg ≥ 85%</li>
+                                    <li><b>Medium</b>: 70–84%</li>
+                                    <li><b>Hard</b>: &lt; 70%</li>
+                                </ul>
+                                <p class="mt-1">For formal item analysis, use the item difficulty index (p‑value) and discrimination; higher p = easier, lower p = harder.</p>
+                                <div class="mt-2 text-[10px] text-gray-500">Reference: <a href="https://citl.illinois.edu/citl-101/measure-student-learning/exam-scoring/improve-exams/item-analysis" target="_blank" rel="noopener noreferrer" class="underline">University of Illinois CITL – Item Analysis</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="assessmentDifficultyCards" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                @foreach($analytics['assessment_difficulty'] as $assessment)
+                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 difficulty-card" data-type="{{ $assessment['type'] }}" data-index="{{ $loop->index }}">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex-1">
                             <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $assessment['name'] }}</div>
@@ -379,10 +445,16 @@
 
     <!-- Performance Trends Chart -->
     <div class="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-            <i data-lucide="trending-up" class="w-5 h-5 text-green-600"></i>
-            Performance Trends
-        </h3>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i data-lucide="trending-up" class="w-5 h-5 text-green-600"></i>
+                Performance Trends
+            </h3>
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-gray-600 dark:text-gray-400">Type</label>
+                <select id="trendsTypeSelect" class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"></select>
+            </div>
+        </div>
         <div class="h-64">
             <canvas id="performanceTrendsChart"></canvas>
         </div>
@@ -451,7 +523,8 @@
   </div>
 </div>
 
-<!-- Correlation Analysis Modal -->
+@if(false)
+<!-- Correlation Analysis Modal (hidden) -->
 <div id="correlationModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-2 sm:p-4">
   <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 transform transition-all max-h-[90vh] flex flex-col">
     <!-- Modal Header -->
@@ -607,7 +680,27 @@
       </button>
     </div>
   </div>
+  </div>
+<!-- Help Modal -->
+<div id="helpModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-2 sm:p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 transform transition-all max-h-[90vh] flex flex-col">
+    <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-3">
+        <i data-lucide="help-circle" class="w-6 h-6 text-gray-600"></i>
+        <h3 id="helpTitle" class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Help</h3>
+      </div>
+      <button onclick="closeHelpModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+    <div class="p-4 sm:p-6 overflow-y-auto flex-1 text-sm text-gray-700 dark:text-gray-300 space-y-3" id="helpBody"></div>
+    <div class="flex justify-center p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+      <button onclick="closeHelpModal()" class="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors">Close</button>
+    </div>
+  </div>
+  </div>
 </div>
+@endif
 
 <!-- Regression Analysis Modal -->
 <div id="regressionModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-2 sm:p-4">
@@ -726,70 +819,119 @@
   </div>
 </div>
 
+<!-- Preset Analyses Modal -->
+<div id="presetModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-2 sm:p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl mx-2 sm:mx-4 transform transition-all max-h-[90vh] flex flex-col">
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-3">
+        <i data-lucide="activity" class="w-6 h-6 text-indigo-600"></i>
+        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Preset Correlation Analyses</h3>
+      </div>
+      <button onclick="closePresetModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
+      <!-- Preset List -->
+      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+        <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-3">Available Presets</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button class="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-left hover:border-indigo-400" onclick="runPreset('attendance_grade')">
+            <div class="font-medium">Attendance (%) → Current Grade (%)</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400">Method: Pearson (fallback Spearman) | H₀: no correlation | H₁: correlation exists</div>
+          </button>
+          
+          <button class="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-left hover:border-indigo-400" onclick="runPreset('attendance_quiz')">
+            <div class="font-medium">Attendance (%) → Quiz Average (%)</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400">Method: Pearson | H₀: no correlation | H₁: correlation exists</div>
+          </button>
+          <button class="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 text-left hover:border-indigo-400" onclick="runPreset('gender_quiz')">
+            <div class="font-medium">Gender → Quiz Average (%)</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400">Method: Point-Biserial + t-test | H₀: no association | H₁: difference exists</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Results Area -->
+      <div id="presetResults" class="space-y-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <h4 id="presetTitle" class="font-semibold text-gray-900 dark:text-gray-100 mb-2"></h4>
+          <div id="presetHypotheses" class="text-sm text-gray-700 dark:text-gray-300 mb-3"></div>
+          <div id="presetStats" class="text-sm text-gray-900 dark:text-gray-100 mb-2"></div>
+          <div id="presetInterpret" class="text-sm text-gray-700 dark:text-gray-300"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <h5 class="font-medium text-sm mb-2">IV Distribution (z-score)</h5>
+            <div class="h-40">
+              <canvas id="preset_iv_hist"></canvas>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <h5 class="font-medium text-sm mb-2">DV Distribution (z-score)</h5>
+            <div class="h-40">
+              <canvas id="preset_dv_hist"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <h5 id="presetChartTitle" class="font-medium text-sm mb-2"></h5>
+          <div class="h-60">
+            <canvas id="preset_main_chart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div id="presetEmpty" class="text-center text-sm text-gray-500">Select a preset above to run the analysis.</div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="flex justify-center p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+      <button onclick="closePresetModal()" class="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors">Close</button>
+    </div>
+  </div>
+  </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Performance Trends Chart
-const ctx = document.getElementById('performanceTrendsChart').getContext('2d');
+// Performance Trends with filter
+const trendsCtx = document.getElementById('performanceTrendsChart').getContext('2d');
+const trendsAll = @json($analytics['assessment_difficulty']);
+let trendsChart = null;
 
-// Get assessment data from PHP
-const assessmentData = @json($analytics['assessment_difficulty']);
+function getUniqueTypes(items) {
+  const set = new Set(items.map(i => i.type).filter(Boolean));
+  return ['All', ...Array.from(set)];
+}
 
-// Prepare chart data
-const assessmentLabels = assessmentData.map(assessment => assessment.name);
-const assessmentScores = assessmentData.map(assessment => assessment.average_score);
+function populateSelect(selectId, options) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = '';
+  options.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt;
+    o.textContent = opt;
+    sel.appendChild(o);
+  });
+}
 
-new Chart(ctx, {
+function rebuildTrendsChart(typeFilter) {
+  const filtered = (typeFilter && typeFilter !== 'All' ? trendsAll.filter(a => a.type === typeFilter) : trendsAll).slice().sort((a,b)=>{
+    const A = a.created_at || '';
+    const B = b.created_at || '';
+    return A.localeCompare(B);
+  });
+  const labels = filtered.map(a => a.name);
+  const data = filtered.map(a => a.average_score);
+  if (trendsChart) { trendsChart.destroy(); }
+  trendsChart = new Chart(trendsCtx, {
     type: 'line',
-    data: {
-        labels: assessmentLabels,
-        datasets: [{
-            label: 'Class Average',
-            data: assessmentScores,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true,
-            pointRadius: 6,
-            pointHoverRadius: 8
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-            title: {
-                display: true,
-                text: 'Class Performance Across Assessments'
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return 'Class Average: ' + context.parsed.y.toFixed(1) + '%';
-                    }
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 100,
-                title: {
-                    display: true,
-                    text: 'Average Score (%)'
-                }
-            },
-            x: {
-                title: {
-                    display: true,
-                    text: 'Assessment'
-                }
-            }
-        }
-    }
-});
+    data: { labels, datasets: [{ label: 'Class Average', data, borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.4, fill: true, pointRadius: 6, pointHoverRadius: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Average Score (%)' } }, x: { title: { display: true, text: 'Assessment' } } }, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Class Performance Across Assessments' }, tooltip: { callbacks: { label: (ctx) => 'Class Average: ' + ctx.parsed.y.toFixed(1) + '%' } } } }
+  });
+}
 
 // ML Debug Functions
 let currentDebugData = null;
@@ -971,8 +1113,9 @@ function renderRiskBadges(badgesDiv, risks) {
     otherRisks.forEach(risk => {
       const colorClass = riskColors[risk.code] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
       const icon = riskIcons[risk.code] || 'alert-circle';
+      const displayLabel = (risk.code === 'risk_chronic_procrastinator' || risk.label === 'Chronic Procrastinator') ? 'Late Submitter' : risk.label;
       html += `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass} mr-1" title="${risk.description}">
-        <i data-lucide="${icon}" class="w-3 h-3"></i> ${risk.label}
+        <i data-lucide="${icon}" class="w-3 h-3"></i> ${displayLabel}
       </span>`;
     });
   } else if (otherRisks.length > 0) {
@@ -983,8 +1126,9 @@ function renderRiskBadges(badgesDiv, risks) {
     otherRisks.forEach(risk => {
       const colorClass = riskColors[risk.code] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
       const icon = riskIcons[risk.code] || 'alert-circle';
+      const displayLabel = (risk.code === 'risk_chronic_procrastinator' || risk.label === 'Chronic Procrastinator') ? 'Late Submitter' : risk.label;
       html += `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass} mr-1" title="${risk.description}">
-        <i data-lucide="${icon}" class="w-3 h-3"></i> ${risk.label}
+        <i data-lucide="${icon}" class="w-3 h-3"></i> ${displayLabel}
       </span>`;
     });
   } else {
@@ -1028,9 +1172,10 @@ function loadMLRisks() {
       // Collect risk data for histogram
       if (data.success && data.has_risks) {
         data.risks.forEach(risk => {
+          const mappedLabel = (risk.code === 'risk_chronic_procrastinator' || risk.label === 'Chronic Procrastinator') ? 'Late Submitter' : risk.label;
           riskDataCollection.push({
             code: risk.code,
-            label: risk.label,
+            label: mappedLabel,
             description: risk.description
           });
         });
@@ -1096,7 +1241,7 @@ function createRiskHistogram() {
   const backgroundColors = labels.map(label => {
     if (label === 'Low Risk' || label === 'Not At Risk') return 'rgba(34, 197, 94, 0.8)'; // Green
     if (label === 'At Risk') return 'rgba(239, 68, 68, 0.8)'; // Red
-    if (label === 'Chronic Procrastinator') return 'rgba(245, 158, 11, 0.8)'; // Yellow
+    if (label === 'Chronic Procrastinator' || label === 'Late Submitter') return 'rgba(245, 158, 11, 0.8)'; // Yellow
     if (label === 'Incomplete') return 'rgba(249, 115, 22, 0.8)'; // Orange
     if (label === 'Inconsistent Performer') return 'rgba(147, 51, 234, 0.8)'; // Purple
     return 'rgba(107, 114, 128, 0.8)'; // Gray default
@@ -1105,7 +1250,7 @@ function createRiskHistogram() {
   const borderColors = labels.map(label => {
     if (label === 'Low Risk' || label === 'Not At Risk') return 'rgba(34, 197, 94, 1)';
     if (label === 'At Risk') return 'rgba(239, 68, 68, 1)';
-    if (label === 'Chronic Procrastinator') return 'rgba(245, 158, 11, 1)';
+    if (label === 'Chronic Procrastinator' || label === 'Late Submitter') return 'rgba(245, 158, 11, 1)';
     if (label === 'Incomplete') return 'rgba(249, 115, 22, 1)';
     if (label === 'Inconsistent Performer') return 'rgba(147, 51, 234, 1)';
     return 'rgba(107, 114, 128, 1)';
@@ -2454,7 +2599,72 @@ function createAssessmentScatterPlots() {
 // Initialize assessment scatter plots when page loads
 document.addEventListener('DOMContentLoaded', function() {
   createAssessmentScatterPlots();
+  // Populate difficulty assessment select (optgroups by type) and show single
+  populateDifficultyAssessmentSelect();
+  const diffSelect = document.getElementById('difficultyAssessmentSelect');
+  if (diffSelect) {
+    diffSelect.addEventListener('change', () => applyDifficultyFilter());
+    if (diffSelect.options.length > 0) {
+      diffSelect.selectedIndex = 0;
+      applyDifficultyFilter();
+    }
+  }
+  // Populate trends type select and render chart
+  const trendsTypes = getUniqueTypes(trendsAll);
+  populateSelect('trendsTypeSelect', trendsTypes);
+  const trendsSelect = document.getElementById('trendsTypeSelect');
+  if (trendsSelect) {
+    trendsSelect.addEventListener('change', () => rebuildTrendsChart(trendsSelect.value));
+    rebuildTrendsChart(trendsSelect.value || 'All');
+  }
 });
+
+function populateDifficultyAssessmentSelect() {
+  const sel = document.getElementById('difficultyAssessmentSelect');
+  if (!sel) return;
+  // sort items by created_at ascending when present
+  const items = [...@json($analytics['assessment_difficulty'])].sort((a,b) => {
+    const A = a.created_at || '';
+    const B = b.created_at || '';
+    return A.localeCompare(B);
+  });
+  sel.innerHTML = '';
+  const byType = items.reduce((acc, it, i) => {
+    (acc[it.type] = acc[it.type] || []).push({ name: it.name, index: i });
+    return acc;
+  }, {});
+  Object.keys(byType).forEach(type => {
+    const og = document.createElement('optgroup');
+    og.label = type;
+    byType[type].forEach(it => {
+      const o = document.createElement('option');
+      o.value = `${type}|${it.name}|${it.index}`;
+      o.textContent = it.name;
+      sel.appendChild(og);
+      og.appendChild(o);
+    });
+  });
+}
+
+function applyDifficultyFilter(typeFilter) {
+  const cards = document.querySelectorAll('.difficulty-card');
+  cards.forEach(card => { card.style.display = 'none'; });
+  // show one by index (string like "type|name|index")
+  const sel = document.getElementById('difficultyAssessmentSelect');
+  if (!sel || !sel.value) return;
+  const parts = sel.value.split('|');
+  const idx = parts[2];
+  const card = document.querySelector(`.difficulty-card[data-index="${idx}"]`);
+  if (card) {
+    card.style.display = '';
+    // when single, expand container to one column full width
+    const container = document.getElementById('assessmentDifficultyCards');
+    if (container) {
+      container.classList.remove('lg:grid-cols-2');
+      container.classList.add('lg:grid-cols-1');
+    }
+  }
+}
 
 function createTTestVisualization(tTestResult, varX, varY) {
   // Destroy existing chart
@@ -2552,6 +2762,468 @@ function createTTestVisualization(tTestResult, varX, varY) {
       }
     }
   });
+}
+
+// Help modal logic
+function openHelpModal(topic) {
+  const title = document.getElementById('helpTitle');
+  const body = document.getElementById('helpBody');
+  if (!title || !body) return;
+  if (topic === 'grade') {
+    title.textContent = 'About Grade Categories';
+    body.innerHTML = `
+      <p>Grade category labels like Excellent, Good, Satisfactory, and Failing are common descriptors used to summarize achievement bands. Many K–12 systems (e.g., DepEd descriptors) use ordered bands to communicate performance levels (Outstanding/Very Satisfactory/Satisfactory/Needs Improvement/Did Not Meet Expectations). Thresholds can be configured locally to match school policy.</p>
+      <ul class="list-disc ml-5 space-y-1">
+        <li><b>Why bands?</b> They provide interpretable summaries for stakeholders while preserving order (ordinal scale). We show the distribution across these bands and the share of students per band.</li>
+        <li><b>Defaults vs policy:</b> The cut scores in this system are configurable; align them with your department or institutional guidelines.</li>
+      </ul>
+      <p class="text-xs text-gray-500">Note: References for banding vary by institution; adopt your school’s official thresholds where applicable.</p>
+    `;
+  } else if (topic === 'difficulty') {
+    title.textContent = 'About Assessment Difficulty';
+    body.innerHTML = `
+      <p>Difficulty is approximated from average percent scores. A common convention in test item analysis classifies items as Easy/Moderate/Hard using the proportion correct (p-value):</p>
+      <ul class="list-disc ml-5 space-y-1">
+        <li><b>Easy:</b> average ≥ 85%</li>
+        <li><b>Medium:</b> average 70–84%</li>
+        <li><b>Hard:</b> average &lt; 70%</li>
+      </ul>
+      <p>This mirrors the idea of item difficulty index bands found in educational measurement (p ≈ 0.70–0.80 often considered optimal; very high p = easy; very low p = difficult). Thresholds here are pragmatic and can be tuned to your context.</p>
+      <p class="text-xs text-gray-500">Tip: For rigorous item analysis, consider computing item difficulty (p) and discrimination (r<sub>pbis</sub>) per item.</p>
+    `;
+  }
+  document.getElementById('helpModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  lucide.createIcons();
+}
+
+function closeHelpModal() {
+  const modal = document.getElementById('helpModal');
+  if (modal) modal.classList.add('hidden');
+  document.body.style.overflow = 'auto';
+}
+
+// Preset Correlation Analyses (Attendance vs Quiz, Gender vs Quiz)
+// Helper: z-score normalization
+function zScore(values) {
+  if (!values || values.length === 0) return [];
+  const n = values.length;
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / (n - 1 || 1);
+  const std = Math.sqrt(variance) || 1;
+  return values.map(v => (v - mean) / std);
+}
+
+// Helper: simple histogram renderer (continuous)
+function renderHistogram(canvasId, values, label, color) {
+  if (!values || values.length === 0) return;
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const binCount = Math.min(10, Math.ceil(Math.sqrt(values.length)));
+  const binSize = (max - min) / (binCount || 1) || 1;
+  const bins = new Array(binCount).fill(0);
+  const binLabels = [];
+  for (let i = 0; i < binCount; i++) {
+    const start = min + i * binSize;
+    const end = min + (i + 1) * binSize;
+    binLabels.push(`${start.toFixed(2)}-${end.toFixed(2)}`);
+  }
+  values.forEach(v => {
+    let idx = Math.floor((v - min) / (binSize || 1));
+    if (idx >= binCount) idx = binCount - 1;
+    if (idx < 0) idx = 0;
+    bins[idx]++;
+  });
+  new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: binLabels,
+      datasets: [{
+        label: `Distribution of ${label}`,
+        data: bins,
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
+        x: { title: { display: true, text: label } }
+      }
+    }
+  });
+}
+
+// Helper: scatter with regression line
+function renderScatterWithRegression(canvasId, xValues, yValues, xLabel, yLabel) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  const { slope, intercept } = linearRegression(xValues, yValues);
+  const minX = Math.min(...xValues);
+  const maxX = Math.max(...xValues);
+  const regLine = [ { x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept } ];
+  new Chart(ctx.getContext('2d'), {
+    type: 'scatter',
+    data: { datasets: [
+      { label: 'Students', data: xValues.map((x, i) => ({ x, y: yValues[i] })), backgroundColor: 'rgba(99,102,241,0.6)', borderColor: 'rgba(99,102,241,1)', pointRadius: 5 },
+      { label: 'Regression Line', type: 'line', data: regLine, borderColor: 'rgba(239,68,68,1)', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 0 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: xLabel } },
+        y: { title: { display: true, text: yLabel }, min: 0, max: 100 }
+      }
+    }
+  });
+}
+
+function strengthLabel(r) {
+  const a = Math.abs(r);
+  if (a >= 0.8) return 'Very Strong';
+  if (a >= 0.6) return 'Strong';
+  if (a >= 0.4) return 'Moderate';
+  if (a >= 0.2) return 'Weak';
+  return 'Very Weak';
+}
+
+function runPresetCorrelationAnalyses() {
+  const studentData = @json($analytics['student_rankings']);
+  const studentAssessmentScores = @json($analytics['student_assessment_scores']);
+  const studentTypeAverages = @json($analytics['student_type_averages']);
+  const studentMetrics = @json($analytics['student_metrics']);
+
+  // Attendance (%) (IV) vs Quiz Average (%) (DV) – Pearson
+  (function() {
+    const x = []; // attendance
+    const y = []; // quiz avg
+    studentData.forEach(r => {
+      const id = r.student.id;
+      const att = studentAssessmentScores[id]?.['Attendance'];
+      const qavg = studentTypeAverages[id]?.['Quiz'];
+      if (att !== null && att !== undefined && !isNaN(att) && qavg !== null && qavg !== undefined && !isNaN(qavg)) {
+        x.push(att);
+        y.push(qavg);
+      }
+    });
+    if (x.length < 2) return;
+    const r = calculateCorrelationCoefficient(x, y, 'pearson');
+    const n = x.length;
+    const t = (1 - r*r) === 0 ? 0 : r * Math.sqrt((n - 2) / (1 - r*r));
+    const p = calculatePValue(t, n - 2);
+    const zX = zScore(x);
+    const zY = zScore(y);
+    renderHistogram('attQuiz_iv_hist', zX, 'Attendance (z)', 'rgba(99,102,241,0.6)');
+    renderHistogram('attQuiz_dv_hist', zY, 'Quiz Avg (z)', 'rgba(16,185,129,0.6)');
+    renderScatterWithRegression('attQuiz_scatter', x, y, 'Attendance (%)', 'Quiz Average (%)');
+    const strength = strengthLabel(r);
+    document.getElementById('attQuiz_r').textContent = r.toFixed(4);
+    document.getElementById('attQuiz_p').textContent = (typeof p === 'number' ? p : 0).toFixed(3);
+    document.getElementById('attQuiz_strength').textContent = strength;
+    const dir = r > 0 ? 'positive' : r < 0 ? 'negative' : 'no';
+    const signif = (typeof p === 'number' && p < 0.05) ? 'statistically significant' : 'not statistically significant';
+    document.getElementById('attQuiz_interpret').textContent = `There is a ${strength.toLowerCase()} ${dir} correlation (r=${r.toFixed(3)}, p=${(typeof p==='number'?p:0).toFixed(3)}), ${signif}.`;
+  })();
+
+  // Gender (IV) vs Quiz Average (%) (DV) – Point-Biserial + t-test
+  (function() {
+    const bin = []; // 1 male, 0 female
+    const cont = []; // quiz avg
+    const femaleVals = [];
+    const maleVals = [];
+    studentData.forEach(r => {
+      const id = r.student.id;
+      const gender = (r.student.gender || '').toLowerCase();
+      const qavg = studentTypeAverages[id]?.['Quiz'];
+      if (!isNaN(qavg) && (gender === 'male' || gender === 'female')) {
+        const b = gender === 'male' ? 1 : 0;
+        bin.push(b);
+        cont.push(qavg);
+        if (b === 1) maleVals.push(qavg); else femaleVals.push(qavg);
+      }
+    });
+    if (bin.length < 2 || femaleVals.length === 0 || maleVals.length === 0) return;
+    // Point-biserial
+    const n = bin.length;
+    const p1 = bin.reduce((s, v) => s + v, 0) / n; // proportion of 1s
+    const p0 = 1 - p1;
+    const meanAll = cont.reduce((a, b) => a + b, 0) / n;
+    const mean1 = maleVals.reduce((a, b) => a + b, 0) / maleVals.length;
+    const mean0 = femaleVals.reduce((a, b) => a + b, 0) / femaleVals.length;
+    const variance = cont.reduce((s, v) => s + Math.pow(v - meanAll, 2), 0) / n;
+    const sd = Math.sqrt(variance) || 1;
+    const rpb = ((mean1 - mean0) * Math.sqrt(p1 * p0)) / sd;
+    // t-test via existing function
+    const tRes = calculateCorrelationCoefficient(bin, cont, 'independent_t_test');
+    // Render histograms per group (z-score per group for shape only)
+    renderHistogram('sexQuiz_f_hist', zScore(femaleVals), 'Quiz Avg (z) – Females', 'rgba(99,102,241,0.6)');
+    renderHistogram('sexQuiz_m_hist', zScore(maleVals), 'Quiz Avg (z) – Males', 'rgba(239,68,68,0.6)');
+    // Group means chart
+    (function() {
+      const ctx = document.getElementById('sexQuiz_group_means');
+      if (!ctx) return;
+      const means = [mean0, mean1];
+      new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: { labels: ['Females', 'Males'], datasets: [{ label: 'Mean Quiz Avg (%)', data: means, backgroundColor: ['rgba(99,102,241,0.6)','rgba(239,68,68,0.6)'], borderColor: ['rgba(99,102,241,1)','rgba(239,68,68,1)'], borderWidth: 1, borderRadius: 8, borderSkipped: false }]},
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Quiz Average (%)' } } } }
+      });
+    })();
+    document.getElementById('sexQuiz_rpb').textContent = rpb.toFixed(4);
+    const pval = (tRes && typeof tRes.p_value === 'number') ? tRes.p_value : NaN;
+    document.getElementById('sexQuiz_p').textContent = isNaN(pval) ? '–' : pval.toFixed(3);
+    document.getElementById('sexQuiz_sig').textContent = (!isNaN(pval) && pval < 0.05) ? 'Significant' : 'Not significant';
+    const strength = strengthLabel(rpb);
+    const dir = rpb > 0 ? 'higher for males' : rpb < 0 ? 'higher for females' : 'no difference';
+    const sigtxt = (!isNaN(pval) && pval < 0.05) ? 'statistically significant' : 'not statistically significant';
+    document.getElementById('sexQuiz_interpret').textContent = `Point-biserial r=${rpb.toFixed(3)} (${strength.toLowerCase()}), t-test p=${isNaN(pval) ? '–' : pval.toFixed(3)} (${sigtxt}). On average, quiz scores are ${dir}.`;
+  })();
+}
+
+// Initialize preset analyses (now user-triggered via modal)
+// document.addEventListener('DOMContentLoaded', function() {
+//   runPresetCorrelationAnalyses();
+// });
+
+// Preset modal handlers and runner
+function openPresetModal() {
+  const modal = document.getElementById('presetModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  // Reset results area
+  const results = document.getElementById('presetResults');
+  const empty = document.getElementById('presetEmpty');
+  if (results && empty) {
+    results.classList.add('hidden');
+    empty.classList.remove('hidden');
+  }
+}
+
+function closePresetModal() {
+  const modal = document.getElementById('presetModal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  document.body.style.overflow = 'auto';
+  destroyPresetCharts();
+}
+
+let presetMainChart = null;
+let presetIvHist = null;
+let presetDvHist = null;
+
+function destroyPresetCharts() {
+  if (presetMainChart) { try { presetMainChart.destroy(); } catch(e) {} presetMainChart = null; }
+  if (presetIvHist) { try { presetIvHist.destroy(); } catch(e) {} presetIvHist = null; }
+  if (presetDvHist) { try { presetDvHist.destroy(); } catch(e) {} presetDvHist = null; }
+}
+
+function renderHistogramConfig(values, label, color) {
+  // Robust binning: Sturges' rule with sane bounds
+  const n = values.length;
+  let min = Math.min(...values), max = Math.max(...values);
+  // Handle degenerate case (all equal)
+  if (!isFinite(min) || !isFinite(max)) { min = 0; max = 1; }
+  if (min === max) { min -= 0.5; max += 0.5; }
+  const sturges = Math.ceil(Math.log2(Math.max(n, 2)) + 1);
+  const binCount = Math.max(8, Math.min(30, sturges));
+  const binSize = (max - min) / binCount;
+  const bins = new Array(binCount).fill(0);
+  const binLabels = [];
+  for (let i = 0; i < binCount; i++) {
+    const start = min + i * binSize;
+    const end = min + (i + 1) * binSize;
+    binLabels.push(`${start.toFixed(2)}–${end.toFixed(2)}`);
+  }
+  values.forEach(v => {
+    let idx = Math.floor((v - min) / binSize);
+    if (idx >= binCount) idx = binCount - 1;
+    if (idx < 0) idx = 0;
+    bins[idx]++;
+  });
+  return {
+    type: 'bar',
+    data: { labels: binLabels, datasets: [{ label: `Distribution of ${label}`, data: bins, backgroundColor: color, borderColor: color, borderWidth: 1, borderRadius: 6, borderSkipped: false }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { title: (ctx) => `Bin ${ctx[0].label}`, label: (ctx) => `Count: ${ctx.parsed.y}` } }
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
+        x: { title: { display: true, text: label } }
+      }
+    }
+  };
+}
+
+function renderCategoricalCountsConfig(labels, counts, title, colors) {
+  return {
+    type: 'bar',
+    data: { labels, datasets: [{ label: title, data: counts, backgroundColor: colors, borderColor: colors.map(c=>c.replace('0.6','1')), borderWidth: 1, borderRadius: 6, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } } }
+  };
+}
+
+function strengthLabel(r) {
+  const a = Math.abs(r);
+  if (a >= 0.8) return 'Very Strong';
+  if (a >= 0.6) return 'Strong';
+  if (a >= 0.4) return 'Moderate';
+  if (a >= 0.2) return 'Weak';
+  return 'Very Weak';
+}
+
+function runPreset(key) {
+  const results = document.getElementById('presetResults');
+  const empty = document.getElementById('presetEmpty');
+  destroyPresetCharts();
+  if (!results || !empty) return;
+  results.classList.add('hidden');
+  empty.classList.add('hidden');
+
+  const studentData = @json($analytics['student_rankings']);
+  const studentAssessmentScores = @json($analytics['student_assessment_scores']);
+  const studentTypeAverages = @json($analytics['student_type_averages']);
+
+  if (key === 'attendance_quiz') {
+    const x = [], y = [];
+    studentData.forEach(r => {
+      const id = r.student.id;
+      const att = studentAssessmentScores[id]?.['Attendance'];
+      const qavg = studentTypeAverages[id]?.['Quiz'];
+      if (!isNaN(att) && !isNaN(qavg)) { x.push(att); y.push(qavg); }
+    });
+    if (x.length < 2) { empty.textContent = 'Not enough data for Attendance vs Quiz Average.'; empty.classList.remove('hidden'); return; }
+    const r = calculateCorrelationCoefficient(x, y, 'pearson');
+    const n = x.length;
+    const t = (1 - r*r) === 0 ? 0 : r * Math.sqrt((n - 2) / (1 - r*r));
+    const p = calculatePValue(t, n - 2);
+    document.getElementById('presetTitle').textContent = 'Attendance (%) → Quiz Average (%) (Pearson)';
+    document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No correlation between attendance and quiz average.</div><div><b>H₁:</b> There is a correlation between attendance and quiz average.</div>';
+    document.getElementById('presetStats').textContent = `r = ${r.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(r)}`;
+    const dir = r > 0 ? 'positive' : r < 0 ? 'negative' : 'no';
+    const signif = (typeof p === 'number' && p < 0.05) ? 'statistically significant' : 'not statistically significant';
+    document.getElementById('presetInterpret').textContent = `There is a ${strengthLabel(r).toLowerCase()} ${dir} correlation, ${signif} at α = 0.05.`;
+    document.getElementById('presetChartTitle').textContent = 'Scatter with regression line';
+    // charts
+    const ctxIv = document.getElementById('preset_iv_hist').getContext('2d');
+    const ctxDv = document.getElementById('preset_dv_hist').getContext('2d');
+    presetIvHist = new Chart(ctxIv, renderHistogramConfig(zScore(x), 'Attendance (z)', 'rgba(99,102,241,0.6)'));
+    presetDvHist = new Chart(ctxDv, renderHistogramConfig(zScore(y), 'Quiz Average (z)', 'rgba(16,185,129,0.6)'));
+    const ctxMain = document.getElementById('preset_main_chart').getContext('2d');
+    const { slope, intercept } = linearRegression(x, y);
+    const minX = Math.min(...x), maxX = Math.max(...x);
+    const regLine = [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }];
+    presetMainChart = new Chart(ctxMain, { type: 'scatter', data: { datasets: [
+      { label: 'Students', data: x.map((xi, i) => ({ x: xi, y: y[i] })), backgroundColor: 'rgba(99,102,241,0.6)', borderColor: 'rgba(99,102,241,1)', pointRadius: 5 },
+      { label: 'Regression Line', type: 'line', data: regLine, borderColor: 'rgba(239,68,68,1)', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, pointRadius: 0 }
+    ] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Attendance (%)' } }, y: { title: { display: true, text: 'Quiz Average (%)' }, min: 0, max: 100 } } } });
+    results.classList.remove('hidden');
+  } else if (key === 'gender_quiz') {
+    const bin = [], cont = [], femaleVals = [], maleVals = [];
+    studentData.forEach(r => {
+      const id = r.student.id; const g = (r.student.gender || '').toLowerCase(); const qavg = studentTypeAverages[id]?.['Quiz'];
+      if (!isNaN(qavg) && (g === 'male' || g === 'female')) { const b = g==='male'?1:0; bin.push(b); cont.push(qavg); if (b) maleVals.push(qavg); else femaleVals.push(qavg); }
+    });
+    if (bin.length < 2 || femaleVals.length === 0 || maleVals.length === 0) { empty.textContent = 'Not enough data for Gender vs Quiz Average.'; empty.classList.remove('hidden'); return; }
+    const n = bin.length; const p1 = bin.reduce((s,v)=>s+v,0)/n; const p0 = 1-p1;
+    const meanAll = cont.reduce((a,b)=>a+b,0)/n; const mean1 = maleVals.reduce((a,b)=>a+b,0)/maleVals.length; const mean0 = femaleVals.reduce((a,b)=>a+b,0)/femaleVals.length;
+    const variance = cont.reduce((s,v)=>s+Math.pow(v-meanAll,2),0)/n; const sd = Math.sqrt(variance)||1;
+    const rpb = ((mean1-mean0)*Math.sqrt(p1*p0))/sd;
+    const tRes = calculateCorrelationCoefficient(bin, cont, 'independent_t_test');
+    const pval = (tRes && typeof tRes.p_value === 'number') ? tRes.p_value : NaN;
+    document.getElementById('presetTitle').textContent = 'Gender → Quiz Average (%) (Point-Biserial + t-test)';
+    document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No association between gender and quiz average.</div><div><b>H₁:</b> Quiz averages differ by gender.</div>';
+    document.getElementById('presetStats').textContent = `r(pb) = ${rpb.toFixed(4)}, t-test p = ${isNaN(pval)?'–':pval.toFixed(3)} · ${strengthLabel(rpb)}`;
+    const dirTxt = rpb > 0 ? 'higher for males' : rpb < 0 ? 'higher for females' : 'no difference';
+    const sigtxt = (!isNaN(pval) && pval < 0.05) ? 'statistically significant' : 'not statistically significant';
+    document.getElementById('presetInterpret').textContent = `There is ${sigtxt} difference at α = 0.05; on average, quiz scores are ${dirTxt}.`;
+    document.getElementById('presetChartTitle').textContent = 'Group means';
+    const ctxIv = document.getElementById('preset_iv_hist').getContext('2d');
+    const ctxDv = document.getElementById('preset_dv_hist').getContext('2d');
+    presetIvHist = new Chart(ctxIv, renderCategoricalCountsConfig(['Females','Males'], [femaleVals.length, maleVals.length], 'Gender Counts', ['rgba(99,102,241,0.6)','rgba(239,68,68,0.6)']));
+    presetDvHist = new Chart(ctxDv, renderHistogramConfig(zScore(cont), 'Quiz Average (z)', 'rgba(16,185,129,0.6)'));
+    const ctxMain = document.getElementById('preset_main_chart').getContext('2d');
+    presetMainChart = new Chart(ctxMain, { type: 'bar', data: { labels: ['Females','Males'], datasets: [{ label: 'Mean Quiz Avg (%)', data: [mean0, mean1], backgroundColor: ['rgba(99,102,241,0.6)','rgba(239,68,68,0.6)'], borderColor: ['rgba(99,102,241,1)','rgba(239,68,68,1)'], borderWidth: 1, borderRadius: 8, borderSkipped: false }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Quiz Average (%)' } } } } });
+    results.classList.remove('hidden');
+  } else if (key === 'attendance_grade') {
+    // Attendance (%) -> Current Grade (%) [Pearson]
+    const x = [], y = [];
+    studentData.forEach(r => {
+      const id = r.student.id;
+      const att = studentAssessmentScores[id]?.['Attendance'];
+      const grade = r.current_grade;
+      if (!isNaN(att) && !isNaN(grade)) { x.push(att); y.push(grade); }
+    });
+    if (x.length < 2) { empty.textContent = 'Not enough data for Attendance vs Current Grade.'; empty.classList.remove('hidden'); return; }
+    const r = calculateCorrelationCoefficient(x, y, 'pearson');
+    const n = x.length; const t = (1 - r*r) === 0 ? 0 : r * Math.sqrt((n - 2) / (1 - r*r));
+    const p = calculatePValue(t, n - 2);
+    document.getElementById('presetTitle').textContent = 'Attendance (%) → Current Grade (%) (Pearson)';
+    document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No correlation between attendance and current grade.</div><div><b>H₁:</b> There is a correlation between attendance and current grade.</div>';
+    document.getElementById('presetStats').textContent = `r = ${r.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(r)}`;
+    const dir = r > 0 ? 'positive' : r < 0 ? 'negative' : 'no';
+    const signif = (typeof p === 'number' && p < 0.05) ? 'statistically significant' : 'not statistically significant';
+    document.getElementById('presetInterpret').textContent = `There is a ${strengthLabel(r).toLowerCase()} ${dir} correlation, ${signif} at α = 0.05.`;
+    document.getElementById('presetChartTitle').textContent = 'Scatter with regression line';
+    const ctxIv = document.getElementById('preset_iv_hist').getContext('2d');
+    const ctxDv = document.getElementById('preset_dv_hist').getContext('2d');
+    presetIvHist = new Chart(ctxIv, renderHistogramConfig(zScore(x), 'Attendance (z)', 'rgba(99,102,241,0.6)'));
+    presetDvHist = new Chart(ctxDv, renderHistogramConfig(zScore(y), 'Current Grade (z)', 'rgba(16,185,129,0.6)'));
+    const ctxMain = document.getElementById('preset_main_chart').getContext('2d');
+    const { slope, intercept } = linearRegression(x, y);
+    const minX = Math.min(...x), maxX = Math.max(...x);
+    const regLine = [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }];
+    presetMainChart = new Chart(ctxMain, { type: 'scatter', data: { datasets: [
+      { label: 'Students', data: x.map((xi, i) => ({ x: xi, y: y[i] })), backgroundColor: 'rgba(99,102,241,0.6)', borderColor: 'rgba(99,102,241,1)', pointRadius: 5 },
+      { label: 'Regression Line', type: 'line', data: regLine, borderColor: 'rgba(239,68,68,1)', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, pointRadius: 0 }
+    ] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Attendance (%)' } }, y: { title: { display: true, text: 'Current Grade (%)' }, min: 0, max: 100 } } } });
+    results.classList.remove('hidden');
+  } else if (key === 'late_grade') {
+    // Late Submissions (%) -> Current Grade (%) [Spearman]
+    const x = [], y = [];
+    studentData.forEach(r => {
+      const id = r.student.id;
+      const late = studentMetrics[id]?.late_submission_pct;
+      const grade = r.current_grade;
+      if (!isNaN(late) && !isNaN(grade)) { x.push(late); y.push(grade); }
+    });
+    if (x.length < 2) { empty.textContent = 'Not enough data for Late Submissions vs Current Grade.'; empty.classList.remove('hidden'); return; }
+    const rho = calculateCorrelationCoefficient(x, y, 'spearman');
+    const n = x.length; const t = (1 - rho*rho) === 0 ? 0 : rho * Math.sqrt((n - 2) / (1 - rho*rho));
+    const p = calculatePValue(t, n - 2);
+    document.getElementById('presetTitle').textContent = 'Late Submissions (%) → Current Grade (%) (Spearman)';
+    document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No monotonic association between late submissions and current grade.</div><div><b>H₁:</b> There is a monotonic association.</div>';
+    document.getElementById('presetStats').textContent = `ρ = ${rho.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(rho)}`;
+    const dir = rho > 0 ? 'positive' : rho < 0 ? 'negative' : 'no';
+    const signif = (typeof p === 'number' && p < 0.05) ? 'statistically significant' : 'not statistically significant';
+    document.getElementById('presetInterpret').textContent = `There is a ${strengthLabel(rho).toLowerCase()} ${dir} monotonic association, ${signif} at α = 0.05.`;
+    document.getElementById('presetChartTitle').textContent = 'Scatter (values) with linear trend';
+    const ctxIv = document.getElementById('preset_iv_hist').getContext('2d');
+    const ctxDv = document.getElementById('preset_dv_hist').getContext('2d');
+    presetIvHist = new Chart(ctxIv, renderHistogramConfig(zScore(x), 'Late Submissions (z)', 'rgba(99,102,241,0.6)'));
+    presetDvHist = new Chart(ctxDv, renderHistogramConfig(zScore(y), 'Current Grade (z)', 'rgba(16,185,129,0.6)'));
+    const ctxMain = document.getElementById('preset_main_chart').getContext('2d');
+    const { slope, intercept } = linearRegression(x, y);
+    const minX = Math.min(...x), maxX = Math.max(...x);
+    const regLine = [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }];
+    presetMainChart = new Chart(ctxMain, { type: 'scatter', data: { datasets: [
+      { label: 'Students', data: x.map((xi, i) => ({ x: xi, y: y[i] })), backgroundColor: 'rgba(99,102,241,0.6)', borderColor: 'rgba(99,102,241,1)', pointRadius: 5 },
+      { label: 'Trend Line', type: 'line', data: regLine, borderColor: 'rgba(239,68,68,1)', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, pointRadius: 0 }
+    ] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Late Submissions (%)' } }, y: { title: { display: true, text: 'Current Grade (%)' }, min: 0, max: 100 } } } });
+    results.classList.remove('hidden');
+  }
 }
 </script>
 @endsection 

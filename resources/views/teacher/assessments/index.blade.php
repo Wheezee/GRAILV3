@@ -103,6 +103,19 @@
                 <i data-lucide="calendar" class="w-4 h-4"></i>
               </a>
             @endif
+            @if($assessment->is_quiz)
+              <a href="{{ route('assessments.quiz.tokens', [$classSection->subject->id, $classSection->id, $term, $assessmentType->id, $assessment->id]) }}" 
+                 class="p-1 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors" 
+                 title="Quiz Tokens">
+                <i data-lucide="key" class="w-4 h-4"></i>
+              </a>
+            @else
+              <a href="{{ route('assessments.quiz.form', [$classSection->subject->id, $classSection->id, $term, $assessmentType->id, $assessment->id]) }}" 
+                 class="p-1 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors" 
+                 title="Make Quiz">
+                <i data-lucide="help-circle" class="w-4 h-4"></i>
+              </a>
+            @endif
             <button onclick="openEditAssessmentModal({{ $assessment->id }}, '{{ $assessment->name }}', {{ $assessment->max_score }}, {{ $assessment->passing_score ?? 'null' }}, '{{ $assessment->warning_score ?? 'null' }}', '{{ $assessment->due_date }}', '{{ $assessment->description }}', {{ $assessment->scores()->count() }})" 
                     class="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
                     title="Edit Assessment">

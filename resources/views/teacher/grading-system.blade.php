@@ -1075,7 +1075,7 @@ function openAnalyticsModal() {
         if (text.includes('at risk')) riskCounts.atRisk++;
         if (text.includes('low risk')) riskCounts.lowRisk++;
         if (text.includes('inconsistent performer')) riskCounts.inconsistentPerformer++;
-        if (text.includes('chronic procrastinator')) riskCounts.chronicProcrastinator++;
+        if (text.includes('late submitter') || text.includes('chronic procrastinator')) riskCounts.chronicProcrastinator++;
 
       });
       // Ensure all values are numbers or 0
@@ -1098,7 +1098,7 @@ function openAnalyticsModal() {
         { label: 'At Risk', value: riskCounts.atRisk, icon: 'alert-triangle', color: 'bg-red-100 dark:bg-red-900/20' },
         { label: 'Low Risk', value: riskCounts.lowRisk, icon: 'shield', color: 'bg-yellow-100 dark:bg-yellow-900/20' },
         { label: 'Inconsistent Performer', value: riskCounts.inconsistentPerformer, icon: 'activity', color: 'bg-purple-100 dark:bg-purple-900/20' },
-        { label: 'Chronic Procrastinator', value: riskCounts.chronicProcrastinator, icon: 'clock', color: 'bg-yellow-50 dark:bg-yellow-800/20' },
+        { label: 'Late Submitter', value: riskCounts.chronicProcrastinator, icon: 'clock', color: 'bg-yellow-50 dark:bg-yellow-800/20' },
 
         { label: 'Average Grade', value: safeData.avgGrade ? safeData.avgGrade.toFixed(1) + '%': 'N/A', icon: 'bar-chart-2', color: 'bg-blue-100 dark:bg-blue-900/20' },
         { label: 'Avg. ML Risk', value: safeData.avgRisk ? safeData.avgRisk.toFixed(1) + '%' : 'N/A', icon: 'activity', color: 'bg-purple-100 dark:bg-purple-900/20' },
@@ -1126,7 +1126,7 @@ function openAnalyticsModal() {
             'At Risk',
             'Low Risk',
             'Inconsistent Performer',
-            'Chronic Procrastinator',
+            'Late Submitter',
 
           ],
           datasets: [{
@@ -1144,7 +1144,7 @@ function openAnalyticsModal() {
               '#ef4444', // At Risk
               '#fbbf24', // Low Risk
               '#a78bfa', // Inconsistent Performer
-              '#facc15', // Chronic Procrastinator
+              '#facc15', // Late Submitter
 
             ],
             borderRadius: 4,
@@ -1611,8 +1611,9 @@ function renderRiskBadges(badgesDiv, risks) {
     otherRisks.forEach(risk => {
       const colorClass = riskColors[risk.code] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
       const icon = riskIcons[risk.code] || 'alert-circle';
+      const displayLabel = (risk.code === 'risk_chronic_procrastinator' || risk.label === 'Chronic Procrastinator') ? 'Late Submitter' : risk.label;
       html += `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass} mr-1" title="${risk.description}">
-        <i data-lucide="${icon}" class="w-3 h-3"></i> ${risk.label}
+        <i data-lucide="${icon}" class="w-3 h-3"></i> ${displayLabel}
       </span>`;
     });
   } else if (otherRisks.length > 0) {
@@ -1623,8 +1624,9 @@ function renderRiskBadges(badgesDiv, risks) {
     otherRisks.forEach(risk => {
       const colorClass = riskColors[risk.code] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
       const icon = riskIcons[risk.code] || 'alert-circle';
+      const displayLabel = (risk.code === 'risk_chronic_procrastinator' || risk.label === 'Chronic Procrastinator') ? 'Late Submitter' : risk.label;
       html += `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass} mr-1" title="${risk.description}">
-        <i data-lucide="${icon}" class="w-3 h-3"></i> ${risk.label}
+        <i data-lucide="${icon}" class="w-3 h-3"></i> ${displayLabel}
       </span>`;
     });
   } else {

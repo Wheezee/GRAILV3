@@ -601,6 +601,22 @@ Route::get('/subjects/{subject}/classes/{classSection}/{term}/assessments/{asses
 Route::post('/subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/scores', [\App\Http\Controllers\AssessmentController::class, 'saveScores'])
     ->name('assessments.scores.save')->middleware('auth');
 
+// Quiz routes for assessments
+Route::get('/subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/quiz', [\App\Http\Controllers\AssessmentController::class, 'showQuizForm'])
+    ->name('assessments.quiz.form')->middleware('auth');
+Route::post('/subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/quiz', [\App\Http\Controllers\AssessmentController::class, 'storeQuiz'])
+    ->name('assessments.quiz.store')->middleware('auth');
+Route::get('/subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/quiz/tokens', [\App\Http\Controllers\AssessmentController::class, 'showQuizTokens'])
+    ->name('assessments.quiz.tokens')->middleware('auth');
+Route::get('/subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/quiz/tokens/status', [\App\Http\Controllers\AssessmentController::class, 'getQuizTokensStatus'])
+    ->name('assessments.quiz.tokens.status')->middleware('auth');
+Route::post('/subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/quiz/tokens/generate', [\App\Http\Controllers\AssessmentController::class, 'generateTokens'])
+    ->name('assessments.quiz.tokens.generate')->middleware('auth');
+Route::put('/tokens/{token}/regenerate', [\App\Http\Controllers\AssessmentController::class, 'regenerateToken'])
+    ->name('tokens.regenerate')->middleware('auth');
+Route::post('/subjects/{subject}/classes/{classSection}/{term}/assessments/{assessmentType}/{assessment}/quiz/reactivate', [\App\Http\Controllers\AssessmentController::class, 'reactivateQuiz'])
+    ->name('assessments.quiz.reactivate')->middleware('auth');
+
 // Batch Enrollment routes
 Route::get('/subjects/{subject}/classes/{classSection}/batch-enrollment', [App\Http\Controllers\BatchEnrollmentController::class, 'showUploadForm'])
     ->name('batch-enrollment.form')
@@ -674,28 +690,39 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
         if ($midtermAssessmentTypes->count() > 0) {
             $midtermGrades = [];
             $midtermWeights = [];
+            $availableWeight = 0;
             
             foreach ($midtermAssessmentTypes as $assessmentType) {
-                $assessmentScores = $student->assessmentScores()
-                    ->whereHas('assessment', function($query) use ($assessmentType) {
-                        $query->where('assessment_type_id', $assessmentType->id);
-                    })
-                    ->with('assessment')
-                    ->get();
+                // Get all assessments for this type, regardless of whether student has scores
+                $allAssessments = $assessmentType->assessments;
                 
-                if ($assessmentScores->count() > 0) {
-                    $typeGrades = $assessmentScores->map(function($score) {
-                        return ($score->score / $score->assessment->max_score) * 100;
-                    })->toArray();
+                if ($allAssessments->count() > 0) {
+                    $assessmentScores = $student->assessmentScores()
+                        ->whereHas('assessment', function($query) use ($assessmentType) {
+                            $query->where('assessment_type_id', $assessmentType->id);
+                        })
+                        ->with('assessment')
+                        ->get();
+                    
+                    $typeGrades = [];
+                    
+                    foreach ($allAssessments as $assessment) {
+                        $score = $assessmentScores->where('assessment_id', $assessment->id)->first();
+                        if ($score && $score->score !== null) {
+                            $typeGrades[] = ($score->score / $assessment->max_score) * 100;
+                        } else {
+                            $typeGrades[] = 0; // missing counts as 0%
+                        }
+                    }
                     
                     $midtermGrades[$assessmentType->id] = $typeGrades;
                     $midtermWeights[$assessmentType->id] = $assessmentType->weight;
+                    $availableWeight += $assessmentType->weight;
                 }
             }
             
             // Compute weighted average for midterm
             if (!empty($midtermGrades)) {
-                $totalWeight = array_sum($midtermWeights);
                 $weightedSum = 0;
                 
                 foreach ($midtermGrades as $typeId => $typeGrades) {
@@ -705,8 +732,9 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
                     }
                 }
                 
-                if ($totalWeight > 0) {
-                    $student->midterm_grade = round($weightedSum / $totalWeight, 1);
+                if ($availableWeight > 0) {
+                    // Midterm grade = weighted sum ÷ sum of active weights (no scaling needed)
+                    $student->midterm_grade = round($weightedSum / $availableWeight, 1);
                 }
             }
         }
@@ -715,28 +743,39 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
         if ($finalAssessmentTypes->count() > 0) {
             $finalGrades = [];
             $finalWeights = [];
+            $availableWeight = 0;
             
             foreach ($finalAssessmentTypes as $assessmentType) {
-                $assessmentScores = $student->assessmentScores()
-                    ->whereHas('assessment', function($query) use ($assessmentType) {
-                        $query->where('assessment_type_id', $assessmentType->id);
-                    })
-                    ->with('assessment')
-                    ->get();
+                // Get all assessments for this type, regardless of whether student has scores
+                $allAssessments = $assessmentType->assessments;
                 
-                if ($assessmentScores->count() > 0) {
-                    $typeGrades = $assessmentScores->map(function($score) {
-                        return ($score->score / $score->assessment->max_score) * 100;
-                    })->toArray();
+                if ($allAssessments->count() > 0) {
+                    $assessmentScores = $student->assessmentScores()
+                        ->whereHas('assessment', function($query) use ($assessmentType) {
+                            $query->where('assessment_type_id', $assessmentType->id);
+                        })
+                        ->with('assessment')
+                        ->get();
+                    
+                    $typeGrades = [];
+                    
+                    foreach ($allAssessments as $assessment) {
+                        $score = $assessmentScores->where('assessment_id', $assessment->id)->first();
+                        if ($score && $score->score !== null) {
+                            $typeGrades[] = ($score->score / $assessment->max_score) * 100;
+                        } else {
+                            $typeGrades[] = 0; // missing counts as 0%
+                        }
+                    }
                     
                     $finalGrades[$assessmentType->id] = $typeGrades;
                     $finalWeights[$assessmentType->id] = $assessmentType->weight;
+                    $availableWeight += $assessmentType->weight;
                 }
             }
             
             // Compute weighted average for final
             if (!empty($finalGrades)) {
-                $totalWeight = array_sum($finalWeights);
                 $weightedSum = 0;
                 
                 foreach ($finalGrades as $typeId => $typeGrades) {
@@ -746,8 +785,9 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
                     }
                 }
                 
-                if ($totalWeight > 0) {
-                    $student->final_grade = round($weightedSum / $totalWeight, 1);
+                if ($availableWeight > 0) {
+                    // Final grade = weighted sum ÷ sum of active weights (no scaling needed)
+                    $student->final_grade = round($weightedSum / $availableWeight, 1);
                 }
             }
         }
@@ -991,4 +1031,13 @@ Route::prefix('subjects/{subject}/classes/{classSection}/{term}/assessments/{ass
     Route::post('/', [\App\Http\Controllers\AttendanceController::class, 'store'])->name('attendance.store');
     Route::get('/data', [\App\Http\Controllers\AttendanceController::class, 'getAttendanceData'])->name('attendance.data');
     Route::delete('/date', [\App\Http\Controllers\AttendanceController::class, 'deleteDate'])->name('attendance.delete-date');
+});
+
+// Student assessment routes (no authentication required)
+Route::prefix('assessment')->name('student.assessment.')->group(function () {
+    Route::get('{unique_url}/access', [\App\Http\Controllers\StudentAssessmentController::class, 'showAccessForm'])->name('access');
+    Route::post('{unique_url}/validate-token', [\App\Http\Controllers\StudentAssessmentController::class, 'validateToken'])->name('validate-token');
+    Route::get('{unique_url}/take', [\App\Http\Controllers\StudentAssessmentController::class, 'takeAssessment'])->name('take');
+    Route::post('{unique_url}/submit', [\App\Http\Controllers\StudentAssessmentController::class, 'submitAssessment'])->name('submit');
+    Route::get('{unique_url}/result', [\App\Http\Controllers\StudentAssessmentController::class, 'showResult'])->name('result');
 });

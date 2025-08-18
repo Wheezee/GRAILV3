@@ -6,8 +6,11 @@ use App\Models\Assessment;
 use App\Models\AssessmentScore;
 use App\Models\AssessmentType;
 use App\Models\ClassSection;
+use App\Models\AssessmentQuestion;
+use App\Models\AssessmentToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class AssessmentController extends Controller
 {
@@ -332,5 +335,306 @@ class AssessmentController extends Controller
             'students',
             'term'
         ));
+    }
+
+    /**
+     * Show quiz creation form for an assessment
+     */
+    public function showQuizForm($subjectId, $classSectionId, $term, $assessmentTypeId, $assessmentId)
+    {
+        if (!auth()->user()->isTeacher()) {
+            abort(403, 'Access denied. Teachers only.');
+        }
+
+        $classSection = ClassSection::where('id', $classSectionId)
+            ->where('teacher_id', auth()->id())
+            ->firstOrFail();
+
+        $assessment = $classSection->subject->assessmentTypes()
+            ->where('term', $term)
+            ->findOrFail($assessmentTypeId)
+            ->assessments()
+            ->where('term', $term)
+            ->findOrFail($assessmentId);
+
+        // Check if quiz already exists
+        $hasQuiz = $assessment->questions()->exists();
+        $questions = $assessment->questions()->orderBy('order')->get();
+
+        return view('teacher.assessments.quiz-form', compact(
+            'classSection', 
+            'assessment', 
+            'hasQuiz', 
+            'questions',
+            'term'
+        ));
+    }
+
+    /**
+     * Store quiz questions for an assessment
+     */
+    public function storeQuiz(Request $request, $subjectId, $classSectionId, $term, $assessmentTypeId, $assessmentId)
+    {
+        if (!auth()->user()->isTeacher()) {
+            abort(403, 'Access denied. Teachers only.');
+        }
+
+        $request->validate([
+            'questions' => 'required|array|min:1',
+            'questions.*.type' => 'required|in:multiple_choice,identification,true_false',
+            'questions.*.question_text' => 'required|string',
+            'questions.*.correct_answer' => 'required|string',
+            'questions.*.points' => 'required|numeric|min:0.01',
+            'questions.*.options' => 'required_if:questions.*.type,multiple_choice|array',
+        ]);
+
+        $classSection = ClassSection::where('id', $classSectionId)
+            ->where('teacher_id', auth()->id())
+            ->firstOrFail();
+
+        $assessment = $classSection->subject->assessmentTypes()
+            ->where('term', $term)
+            ->findOrFail($assessmentTypeId)
+            ->assessments()
+            ->where('term', $term)
+            ->findOrFail($assessmentId);
+
+        // Enable quiz mode and generate unique URL
+        $assessment->update([
+            'is_quiz' => true,
+            'unique_url' => Str::random(10),
+            'auto_grade' => true,
+            'expires_at' => now()->addDay(), // Quiz expires in 24 hours
+        ]);
+
+        // Delete existing questions
+        $assessment->questions()->delete();
+
+        // Store new questions and calculate total points
+        $totalPoints = 0;
+        foreach ($request->questions as $index => $questionData) {
+            $assessment->questions()->create([
+                'type' => $questionData['type'],
+                'question_text' => $questionData['question_text'],
+                'options' => $questionData['options'] ?? null,
+                'correct_answer' => $questionData['correct_answer'],
+                'points' => $questionData['points'],
+                'order' => $index + 1,
+            ]);
+            $totalPoints += $questionData['points'];
+        }
+
+        // Update assessment max_score to match total quiz points
+        $assessment->update(['max_score' => $totalPoints]);
+
+        return redirect()->route('assessments.quiz.tokens', [
+            'subject' => $subjectId,
+            'classSection' => $classSectionId,
+            'term' => $term,
+            'assessmentType' => $assessmentTypeId,
+            'assessment' => $assessmentId
+        ])->with('success', 'Quiz created successfully!');
+    }
+
+    /**
+     * Show quiz tokens and QR code
+     */
+    public function showQuizTokens($subjectId, $classSectionId, $term, $assessmentTypeId, $assessmentId)
+    {
+        if (!auth()->user()->isTeacher()) {
+            abort(403, 'Access denied. Teachers only.');
+        }
+
+        $classSection = ClassSection::where('id', $classSectionId)
+            ->where('teacher_id', auth()->id())
+            ->firstOrFail();
+
+        $assessment = $classSection->subject->assessmentTypes()
+            ->where('term', $term)
+            ->findOrFail($assessmentTypeId)
+            ->assessments()
+            ->where('term', $term)
+            ->findOrFail($assessmentId);
+
+        if (!$assessment->is_quiz) {
+            return back()->with('error', 'This assessment is not a quiz.');
+        }
+
+        $students = $classSection->students;
+        $tokens = AssessmentToken::where('assessment_id', $assessment->id)
+            ->with('student')
+            ->get();
+
+        return view('teacher.assessments.quiz-tokens', compact(
+            'classSection',
+            'assessment',
+            'students',
+            'tokens',
+            'term'
+        ));
+    }
+
+    /**
+     * Generate tokens for all students
+     */
+    public function generateTokens($subjectId, $classSectionId, $term, $assessmentTypeId, $assessmentId)
+    {
+        if (!auth()->user()->isTeacher()) {
+            abort(403, 'Access denied. Teachers only.');
+        }
+
+        $classSection = ClassSection::where('id', $classSectionId)
+            ->where('teacher_id', auth()->id())
+            ->firstOrFail();
+
+        $assessment = $classSection->subject->assessmentTypes()
+            ->where('term', $term)
+            ->findOrFail($assessmentTypeId)
+            ->assessments()
+            ->where('term', $term)
+            ->findOrFail($assessmentId);
+
+        if (!$assessment->is_quiz) {
+            return back()->with('error', 'This assessment is not a quiz.');
+        }
+
+        $students = $classSection->students;
+        $generatedCount = 0;
+
+        foreach ($students as $student) {
+            AssessmentToken::updateOrCreate(
+                [
+                    'assessment_id' => $assessment->id,
+                    'student_id' => $student->id,
+                ],
+                [
+                    'status' => 'active',
+                    'expires_at' => $assessment->due_date ?? now()->addDays(7),
+                ]
+            );
+            $generatedCount++;
+        }
+
+        return back()->with('success', "Generated {$generatedCount} tokens successfully!");
+    }
+
+    /**
+     * Regenerate a specific token
+     */
+    public function regenerateToken($tokenId)
+    {
+        if (!auth()->user()->isTeacher()) {
+            abort(403, 'Access denied. Teachers only.');
+        }
+
+        $token = AssessmentToken::findOrFail($tokenId);
+        
+        // Check if teacher owns the assessment
+        $assessment = $token->assessment;
+        $classSection = $assessment->assessmentType->subject->classSections()
+            ->where('teacher_id', auth()->id())
+            ->first();
+            
+        if (!$classSection) {
+            abort(403, 'Access denied. You can only regenerate tokens for your own assessments.');
+        }
+
+        $token->generateNewToken();
+
+        return response()->json(['success' => true, 'token' => $token->token]);
+    }
+
+    /**
+     * Get real-time status of quiz tokens for AJAX updates
+     */
+    public function getQuizTokensStatus($subjectId, $classSectionId, $term, $assessmentTypeId, $assessmentId)
+    {
+        if (!auth()->user()->isTeacher()) {
+            abort(403, 'Access denied. Teachers only.');
+        }
+
+        $classSection = ClassSection::where('id', $classSectionId)
+            ->where('teacher_id', auth()->id())
+            ->firstOrFail();
+
+        $assessment = $classSection->subject->assessmentTypes()
+            ->where('term', $term)
+            ->findOrFail($assessmentTypeId)
+            ->assessments()
+            ->where('term', $term)
+            ->findOrFail($assessmentId);
+
+        if (!$assessment->is_quiz) {
+            return response()->json(['success' => false, 'message' => 'This assessment is not a quiz.']);
+        }
+
+        // Get all tokens with their current status
+        $tokens = AssessmentToken::where('assessment_id', $assessment->id)
+            ->with('student')
+            ->get()
+            ->map(function ($token) {
+                return [
+                    'student_id' => $token->student->student_id,
+                    'is_used' => $token->isUsed(),
+                    'is_expired' => $token->isExpired(),
+                    'used_at' => $token->used_at,
+                    'just_completed' => $token->used_at && $token->updated_at->diffInSeconds(now()) < 30, // Highlight if completed in last 30 seconds
+                ];
+            });
+
+        // Get quiz statistics
+        $stats = [
+            'total_questions' => $assessment->questions->count(),
+            'total_points' => $assessment->questions->sum('points'),
+            'completed_count' => $tokens->where('is_used', true)->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'tokens' => $tokens,
+            'stats' => $stats,
+            'last_updated' => now()->toISOString(),
+        ]);
+    }
+
+    /**
+     * Reactivate an expired quiz or extend time for expiring quiz
+     */
+    public function reactivateQuiz($subjectId, $classSectionId, $term, $assessmentTypeId, $assessmentId)
+    {
+        if (!auth()->user()->isTeacher()) {
+            abort(403, 'Access denied. Teachers only.');
+        }
+
+        $classSection = ClassSection::where('id', $classSectionId)
+            ->where('teacher_id', auth()->id())
+            ->firstOrFail();
+
+        $assessment = $classSection->subject->assessmentTypes()
+            ->where('term', $term)
+            ->findOrFail($assessmentTypeId)
+            ->assessments()
+            ->where('term', $term)
+            ->findOrFail($assessmentId);
+
+        if (!$assessment->is_quiz) {
+            return back()->with('error', 'This assessment is not a quiz.');
+        }
+
+        // Check if quiz is expiring soon (less than 2 hours)
+        $isExpiringSoon = $assessment->expires_at && $assessment->expires_at->diffInHours(now()) < 2;
+
+        if (!$assessment->isExpired() && !$isExpiringSoon) {
+            return back()->with('info', 'This quiz is still active and has plenty of time remaining.');
+        }
+
+        // Extend expiration by 24 hours
+        $assessment->extendExpiration();
+
+        if ($assessment->isExpired()) {
+            return back()->with('success', 'Quiz reactivated successfully! It will expire in 24 hours.');
+        } else {
+            return back()->with('success', 'Quiz time extended successfully! It will expire in 24 hours.');
+        }
     }
 } 
