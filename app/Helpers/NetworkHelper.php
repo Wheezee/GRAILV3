@@ -9,6 +9,44 @@ class NetworkHelper
      */
     public static function getServerIP()
     {
+        // Prefer Python microservice if available
+        $ipFromPython = self::getServerIPViaPython();
+        if ($ipFromPython) {
+            return $ipFromPython;
+        }
+
+        return self::getServerIPWithoutPython();
+    }
+
+    /**
+     * Attempt to get host IP via the Python microservice exposed on port 5055.
+     */
+    public static function getServerIPViaPython()
+    {
+        try {
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 0.2,
+                ]
+            ]);
+            $response = @file_get_contents('http://host.docker.internal:5055/api/host-ip', false, $context);
+            if ($response) {
+                $data = json_decode($response, true);
+                if (isset($data['success']) && $data['success'] && !empty($data['ip']) && $data['ip'] !== '127.0.0.1') {
+                    return $data['ip'];
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+        return null;
+    }
+
+    /**
+     * Get server IP without using the Python microservice (direct methods only).
+     */
+    public static function getServerIPWithoutPython()
+    {
         // Method 1: Try to get from $_SERVER variables
         if (!empty($_SERVER['SERVER_ADDR']) && $_SERVER['SERVER_ADDR'] !== '127.0.0.1') {
             return $_SERVER['SERVER_ADDR'];
@@ -33,7 +71,6 @@ class NetworkHelper
         }
         
         // Method 3: Try to get from network interfaces
-        $ips = [];
         if (function_exists('socket_create')) {
             $sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
             if ($sock) {

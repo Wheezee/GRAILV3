@@ -465,11 +465,12 @@ class AssessmentController extends Controller
             ->with('student')
             ->get();
 
-        // Generate both quiz URLs
-        $quizUrlDocker = 'http://host.docker.internal:8000/assessment/' . $assessment->unique_url . '/access';
-        $quizUrlServer = 'http://' . \App\Helpers\NetworkHelper::getServerIP() . ':8000/assessment/' . $assessment->unique_url . '/access';
+        // Generate quiz URLs
+        $quizUrlServer = 'http://' . \App\Helpers\NetworkHelper::getServerIPWithoutPython() . ':8000/assessment/' . $assessment->unique_url . '/access';
+        $pythonIp = \App\Helpers\NetworkHelper::getServerIPViaPython();
+        $quizUrlPython = $pythonIp ? ('http://' . $pythonIp . ':8000/assessment/' . $assessment->unique_url . '/access') : null;
 
-        // Default QR code SVG for server IP
+        // Default QR code SVG for normal server IP
         $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(180)->generate($quizUrlServer);
         $qrSvgLarge = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(400)->generate($quizUrlServer);
 
@@ -481,8 +482,8 @@ class AssessmentController extends Controller
             'term',
             'qrSvg',
             'qrSvgLarge',
-            'quizUrlDocker',
-            'quizUrlServer'
+            'quizUrlServer',
+            'quizUrlPython'
         ));
     }
 

@@ -119,7 +119,10 @@
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quiz Access Information</h3>
       <div class="space-y-3">
         <div class="mb-4">
-          <button id="toggle-url" class="btn btn-secondary mb-2">Switch to Docker Host</button>
+          <div class="flex items-center gap-2 mb-2">
+            <button id="use-normal" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded">Normal IP</button>
+            <button id="use-python" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded">Python + Docker</button>
+          </div>
           <div>
             <span id="current-url">{{ $quizUrlServer }}</span>
           </div>
@@ -128,23 +131,49 @@
           </div>
         </div>
         <script>
-          const quizUrlDocker = @json($quizUrlDocker);
           const quizUrlServer = @json($quizUrlServer);
-          let usingDocker = false;
+          const quizUrlPython = @json($quizUrlPython);
 
-          document.getElementById('toggle-url').addEventListener('click', function() {
-            usingDocker = !usingDocker;
-            const url = usingDocker ? quizUrlDocker : quizUrlServer;
+          const btnNormal = document.getElementById('use-normal');
+          const btnPython = document.getElementById('use-python');
+
+          function setUrl(url) {
             document.getElementById('current-url').textContent = url;
-            this.textContent = usingDocker ? 'Switch to Server IP' : 'Switch to Docker Host';
-
-            // Fetch new QR code from server
+            document.getElementById('quiz-url-input').value = url;
             fetch(`/api/generate-qr?url=${encodeURIComponent(url)}`)
               .then(response => response.text())
               .then(svg => {
                 document.getElementById('qr-code').innerHTML = svg;
               });
+          }
+
+          function setButtonState(activeBtn) {
+            const all = [btnNormal, btnPython];
+            all.forEach(btn => {
+              btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+              btn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+              btn.setAttribute('aria-pressed', 'false');
+            });
+            activeBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+            activeBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            activeBtn.setAttribute('aria-pressed', 'true');
+          }
+
+          btnNormal.addEventListener('click', function() {
+            setButtonState(btnNormal);
+            setUrl(quizUrlServer);
           });
+          btnPython.addEventListener('click', function() {
+            if (!quizUrlPython) {
+              alert('Python host-ip service is not available. Please start ML/host_ip_api.py.');
+              return;
+            }
+            setButtonState(btnPython);
+            setUrl(quizUrlPython);
+          });
+
+          // Ensure default visual state reflects Normal IP on load
+          setButtonState(btnNormal);
         </script>
         <div class="flex items-center gap-2 mt-1">
           <input id="quiz-url-input" type="text" value="{{ $quizUrlServer }}" readonly class="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
@@ -152,13 +181,6 @@
             <i data-lucide="copy" class="w-4 h-4"></i>
           </button>
         </div>
-        <script>
-          // Update input field when toggling
-          document.getElementById('toggle-url').addEventListener('click', function() {
-            const url = usingDocker ? quizUrlDocker : quizUrlServer;
-            document.getElementById('quiz-url-input').value = url;
-          });
-        </script>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
