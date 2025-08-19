@@ -23,6 +23,21 @@
             Weights: Midterm 50% | Final 50%
         @endif
     </p>
+    @if(isset($gradingMode) && $gradingMode !== 'percentage')
+        <p style="color: #666; font-style: italic;">
+            Grading Mode: 
+            @switch($gradingMode)
+                @case('linear')
+                    Linear Scale (1.0-5.0)
+                    @break
+                @case('custom')
+                    Custom Grading
+                    @break
+                @default
+                    {{ ucfirst($gradingMode) }}
+            @endswitch
+        </p>
+    @endif
     <table>
         <thead>
             <tr>

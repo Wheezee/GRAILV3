@@ -84,10 +84,30 @@
       <!-- Export Button -->
       <button
         class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-medium rounded-lg transition-colors hover:bg-red-600 text-xs sm:text-sm"
-        onclick="document.getElementById('exportModal').classList.remove('hidden')"
+        onclick="openExportModal()"
       >
         <i data-lucide="download" class="w-4 h-4"></i>
         <span>Export</span>
+      </button>
+      
+      <!-- Export 2 Button -->
+      <button
+        id="export2Button"
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white font-medium rounded-lg transition-colors hover:bg-green-600 text-xs sm:text-sm"
+        onclick="exportCurrentData()"
+      >
+        <i data-lucide="file-text" class="w-4 h-4"></i>
+        <span>Export 2</span>
+      </button>
+      
+      <!-- Debug Button -->
+      <button
+        id="debugButton"
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500 text-white font-medium rounded-lg transition-colors hover:bg-yellow-600 text-xs sm:text-sm"
+        onclick="showTableDOM()"
+      >
+        <i data-lucide="bug" class="w-4 h-4"></i>
+        <span>Debug Table</span>
       </button>
     </div>
   </div>
@@ -99,19 +119,52 @@
     <h3 class="text-lg font-bold mb-4">Export Gradebook</h3>
     <form method="GET" action="{{ route('gradebook.export', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id]) }}">
       <input type="hidden" name="format" id="exportFormat" value="">
+      <input type="hidden" name="grading_mode" id="exportGradingMode" value="">
+      <input type="hidden" name="grading_settings" id="exportGradingSettings" value="">
+      
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Grading Mode:</label>
+        <div class="text-sm text-gray-600 dark:text-gray-400 p-2 bg-gray-100 dark:bg-gray-700 rounded" id="exportModeDisplay">
+          Loading...
+        </div>
+      </div>
+      
       <button type="button" class="w-full mb-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        onclick="document.getElementById('exportFormat').value='pdf'; this.form.submit();">
-        PDF
+        onclick="prepareExport('pdf');">
+        Export as PDF
       </button>
       <button type="button" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        onclick="document.getElementById('exportFormat').value='excel'; this.form.submit();">
-        Excel
+        onclick="prepareExport('excel');">
+        Export as Excel
       </button>
       <button type="button" class="w-full mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
         onclick="document.getElementById('exportModal').classList.add('hidden')">
         Cancel
       </button>
     </form>
+  </div>
+</div>
+
+<!-- Debug Modal -->
+<div id="debugModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-[95vw] max-w-[1400px] max-h-[90vh] overflow-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Debug Table Data</h3>
+      <button onclick="closeDebugModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    
+    <div id="debugTableContent" class="overflow-x-auto">
+      <!-- Table content will be inserted here -->
+    </div>
+    
+    <div class="flex justify-end mt-4">
+      <button onclick="closeDebugModal()" 
+              class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded-lg transition-colors">
+        Close
+      </button>
+    </div>
   </div>
 </div>
 
@@ -183,7 +236,8 @@
 
 <!-- Gradebook Table -->
 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-x-auto">
-  <table class="w-full min-w-[800px] sm:min-w-[1400px]">
+  <div id="debugCounter" class="text-xs text-gray-500 p-2 text-center">Debug Counter: 0</div>
+  <table id="gradebookTable" class="w-full min-w-[800px] sm:min-w-[1400px]">
     <thead>
       <tr>
         <th rowspan="3" class="px-2 sm:px-6 py-3 text-left bg-white dark:bg-gray-800 sticky left-0 top-0 z-20 border-b border-gray-200 dark:border-gray-700">
@@ -499,6 +553,334 @@
 @endif
 
 <script>
+// Debug function to show table data values (defined globally)
+function showTableDOM() {
+  // Increment debug counter
+  const counterElement = document.getElementById('debugCounter');
+  const currentCount = parseInt(counterElement.textContent.match(/\d+/)[0]) || 0;
+  const newCount = currentCount + 1;
+  counterElement.textContent = `Debug Counter: ${newCount}`;
+  
+  console.log(`Debug: Starting debug function (attempt #${newCount})`);
+  
+  // Get the specific table by ID
+  const table = document.getElementById('gradebookTable');
+  if (!table) {
+    alert('No gradebook table found in the DOM');
+    return;
+  }
+
+  console.log('Debug: Found gradebook table with ID');
+  
+  // Get the current grading mode
+  const gradingMode = document.getElementById('grading_mode').value;
+  console.log('Debug: Current grading mode:', gradingMode);
+  
+  // Force update the grade display to ensure we have the latest data
+  console.log('Debug: About to call updateGradeDisplay()');
+  updateGradeDisplay();
+  console.log('Debug: updateGradeDisplay() called');
+  
+  // Wait a moment for the update to complete, then get the data
+  setTimeout(() => {
+    // Always read from the specific table by ID
+    const originalTable = document.getElementById('gradebookTable');
+    
+    // Extract clean text content from current table (after grading mode changes)
+    const currentCells = originalTable.querySelectorAll('th, td');
+    const cleanTextData = [];
+    
+    console.log('Debug: Found', currentCells.length, 'cells');
+    
+    // Get the actual grade display elements (these contain the current grades)
+    const gradeDisplays = document.querySelectorAll('.grade-display');
+    console.log('Debug: Found', gradeDisplays.length, 'grade display elements');
+    gradeDisplays.forEach((display, index) => {
+      console.log(`Debug: Grade Display ${index}: "${display.textContent}"`);
+    });
+    
+    // Clone the original table to preserve structure (colspan, rowspan, etc.)
+    const clonedTable = originalTable.cloneNode(true);
+    
+    // Clean up the cloned table content but preserve structure
+    const allCells = clonedTable.querySelectorAll('th, td');
+    allCells.forEach(cell => {
+      // Get clean text content
+      const textContent = cell.textContent || cell.innerText || '';
+      let cleanText = textContent.replace(/\s+/g, ' ').trim();
+      
+      // Remove duplicate consecutive words/phrases
+      const words = cleanText.split(' ');
+      const uniqueWords = [];
+      
+      for (let i = 0; i < words.length; i++) {
+        const currentWord = words[i];
+        const nextWord = words[i + 1];
+        
+        // Check if current word is followed by the same word
+        if (currentWord === nextWord) {
+          continue; // Skip the duplicate
+        }
+        
+        // Check for duplicate phrases (2-word sequences)
+        if (i < words.length - 3) {
+          const phrase1 = words.slice(i, i + 2).join(' ');
+          const phrase2 = words.slice(i + 2, i + 4).join(' ');
+          if (phrase1 === phrase2) {
+            i += 1; // Skip next word too
+            continue;
+          }
+        }
+        
+        uniqueWords.push(currentWord);
+      }
+      
+      cleanText = uniqueWords.join(' ');
+      
+      // Fix specific cases like "Attendance Attendan..." to just "Attendance"
+      cleanText = cleanText.replace(/Attendance\s+Attendan\.\.\./g, 'Attendance');
+      cleanText = cleanText.replace(/Quiz\s+\d+\s+Quiz\s+\d+/g, (match) => {
+        // Extract just "Quiz X" from "Quiz X Quiz X"
+        const quizMatch = match.match(/Quiz\s+\d+/);
+        return quizMatch ? quizMatch[0] : match;
+      });
+      
+      // Format percentages: convert "100.00 100.00%" to "100.00 (100.00%)"
+      cleanText = cleanText.replace(/(\d+\.?\d*)\s+(\d+\.?\d*%)/g, '$1 ($2)');
+      
+      // Clear the cell and add only the clean text
+      cell.innerHTML = cleanText || '--';
+    });
+    
+    // Now update the grade cells with current grade data
+    // We need to find the grade cells in the cloned table and update them with current data
+    const gradeCells = clonedTable.querySelectorAll('td');
+    let gradeIndex = 0;
+    
+    // Find the last 3 cells of each student row (which are the grade cells)
+    const studentRows = clonedTable.querySelectorAll('tbody tr');
+    studentRows.forEach((row, studentIndex) => {
+      const cells = Array.from(row.querySelectorAll('td'));
+      if (cells.length > 0) {
+        // The last 3 cells are the grade cells (midterm, final, overall)
+        const gradeCellsInRow = cells.slice(-3);
+        gradeCellsInRow.forEach((gradeCell, gradePosition) => {
+          const currentGrade = gradeDisplays[gradeIndex]?.textContent?.trim() || '--';
+          gradeCell.innerHTML = currentGrade;
+          gradeIndex++;
+        });
+      }
+    });
+    
+    // Remove all classes and complex styling but keep basic structure
+    const allElements = clonedTable.querySelectorAll('*');
+    allElements.forEach(element => {
+      // Remove classes but keep essential attributes
+      element.removeAttribute('class');
+      element.removeAttribute('style');
+      
+      // Keep colspan, rowspan, and other structural attributes
+      const keepAttributes = ['colspan', 'rowspan', 'id', 'data-*'];
+      keepAttributes.forEach(attr => {
+        if (element.hasAttribute(attr)) {
+          // Keep the attribute
+        }
+      });
+    });
+    
+    // Apply minimal debug styling
+    clonedTable.style.cssText = 'border-collapse: collapse; width: 100%; font-family: monospace; font-size: 12px;';
+    
+    // Style all cells with borders
+    const allCellsStyled = clonedTable.querySelectorAll('th, td');
+    allCellsStyled.forEach(cell => {
+      const isHeader = cell.tagName === 'TH';
+      cell.style.cssText = `
+        border: 1px solid #ccc; 
+        padding: 4px; 
+        text-align: center; 
+        background-color: ${isHeader ? '#f0f0f0' : 'white'}; 
+        min-width: 60px;
+        vertical-align: middle;
+      `;
+    });
+    
+    // Style rows
+    const allRows = clonedTable.querySelectorAll('tr');
+    allRows.forEach(row => {
+      row.style.cssText = 'border: 1px solid #ccc;';
+    });
+
+    // Show modal with the complete table structure
+    document.getElementById('debugTableContent').innerHTML = '';
+    document.getElementById('debugTableContent').appendChild(clonedTable);
+    document.getElementById('debugModal').classList.remove('hidden');
+    
+    console.log('Debug: Modal displayed with complete table structure');
+    console.log('Debug: Table structure preserved with colspan/rowspan');
+    console.log('Debug: Current grades updated in the structure');
+  }, 100); // Small delay to ensure grade updates are complete
+}
+
+// Function to close debug modal
+function closeDebugModal() {
+  document.getElementById('debugModal').classList.add('hidden');
+}
+
+// Function to prepare export with grading mode data
+function prepareExport(format) {
+  // Get current grading mode and settings
+  const gradingMode = document.getElementById('grading_mode').value;
+  const gradingSettings = getCurrentGradingSettings();
+  
+  // Update hidden inputs
+  document.getElementById('exportFormat').value = format;
+  document.getElementById('exportGradingMode').value = gradingMode;
+  document.getElementById('exportGradingSettings').value = JSON.stringify(gradingSettings);
+  
+  // Update display
+  document.getElementById('exportModeDisplay').textContent = getGradingModeDisplayName(gradingMode);
+  
+  // Submit the form
+  document.querySelector('#exportModal form').submit();
+}
+
+// Function to get current grading settings
+function getCurrentGradingSettings() {
+  const gradingMode = document.getElementById('grading_mode').value;
+  const settings = { mode: gradingMode };
+  
+  if (gradingMode === 'custom') {
+    // Get custom grading parameters
+    const maxScore = document.getElementById('max_score')?.value || 95;
+    const passingScore = document.getElementById('passing_score')?.value || 75;
+    const customFormula = document.getElementById('custom_formula')?.value || 'inverse_linear';
+    
+    settings.maxScore = maxScore;
+    settings.passingScore = passingScore;
+    settings.customFormula = customFormula;
+  }
+  
+  return settings;
+}
+
+// Function to get display name for grading mode
+function getGradingModeDisplayName(mode) {
+  const modeNames = {
+    'percentage': 'Percentage-Based (0-100%)',
+    'linear': 'Linear (1.0-5.0)',
+    'custom': 'Custom Grading'
+  };
+  return modeNames[mode] || mode;
+}
+
+// Function to open export modal and initialize display
+function openExportModal() {
+  // Update the grading mode display
+  const gradingMode = document.getElementById('grading_mode').value;
+  document.getElementById('exportModeDisplay').textContent = getGradingModeDisplayName(gradingMode);
+  
+  // Show the modal
+  document.getElementById('exportModal').classList.remove('hidden');
+}
+
+// Function to export current data (Export 2)
+function exportCurrentData() {
+  // Force update the grade display to ensure we have the latest data
+  updateGradeDisplay();
+  
+  // Wait a moment for the update to complete, then export
+  setTimeout(() => {
+    // Get the current grading mode
+    const gradingMode = document.getElementById('grading_mode').value;
+    
+    // Get current grade data
+    const gradeDisplays = document.querySelectorAll('.grade-display');
+    const currentGrades = [];
+    gradeDisplays.forEach(display => {
+      currentGrades.push(display.textContent.trim());
+    });
+    
+    // Get student data
+    const table = document.getElementById('gradebookTable');
+    const studentRows = table.querySelectorAll('tbody tr');
+    const students = [];
+    
+    studentRows.forEach((row, rowIndex) => {
+      const cells = Array.from(row.querySelectorAll('td'));
+      if (cells.length > 0) {
+        const studentId = cells[0]?.textContent?.trim() || 'N/A';
+        const studentName = cells[1]?.textContent?.trim() || 'N/A';
+        
+        // Clean up student name (remove duplicates)
+        const cleanName = studentName.replace(/(\w+,\s*\w+)\s+\1/g, '$1');
+        
+        // Get assessment scores (skip first 2 columns and last 3 columns)
+        const scores = [];
+        for (let i = 2; i < cells.length - 3; i++) {
+          const scoreText = cells[i]?.textContent?.trim() || '--';
+          scores.push(scoreText);
+        }
+        
+        // Get grades (last 3 columns)
+        const grades = [];
+        for (let i = cells.length - 3; i < cells.length; i++) {
+          const gradeText = cells[i]?.textContent?.trim() || '--';
+          grades.push(gradeText);
+        }
+        
+        students.push({
+          id: studentId,
+          name: cleanName,
+          scores: scores,
+          grades: grades
+        });
+      }
+    });
+    
+    // Prepare export data
+    const exportData = {
+      gradingMode: gradingMode,
+      students: students,
+      currentGrades: currentGrades,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Send data to backend for export
+    fetch(`{{ route('gradebook.export2', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id]) }}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify(exportData)
+    })
+    .then(response => {
+      if (response.ok) {
+        return response.blob();
+      }
+      throw new Error('Export failed');
+    })
+    .then(blob => {
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gradebook_export2_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      showNotification('Export 2 completed successfully!', 'success');
+    })
+    .catch(error => {
+      console.error('Export error:', error);
+      showNotification('Export failed. Please try again.', 'error');
+    });
+  }, 100);
+}
+
 // Dynamic grading system
 let currentGradingMode = 'percentage';
 let gradingParams = {
@@ -650,10 +1032,17 @@ function updateGradeDisplay() {
   const gradeDisplays = document.querySelectorAll('.grade-display');
   const gradingMode = document.getElementById('grading_mode').value;
   
-  gradeDisplays.forEach(display => {
+  console.log('Debug: updateGradeDisplay called with mode:', gradingMode);
+  console.log('Debug: Found', gradeDisplays.length, 'grade display elements');
+  
+  gradeDisplays.forEach((display, index) => {
     const grade = parseFloat(display.dataset.grade);
+    console.log(`Debug: Grade ${index}: original=${grade}, mode=${gradingMode}`);
+    
     if (!isNaN(grade)) {
       const convertedGrade = convertGrade(grade, gradingMode, gradingParams);
+      console.log(`Debug: Grade ${index}: converted from ${grade} to ${convertedGrade}`);
+      
       display.textContent = convertedGrade;
       display.dataset.type = gradingMode;
       
@@ -866,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Load saved settings
   loadGradingSettings();
-  
+
   // Initialize Lucide icons
   if (window.lucide) {
     lucide.createIcons();
