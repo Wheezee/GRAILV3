@@ -109,12 +109,8 @@
   <div class="flex flex-col lg:flex-row items-start gap-6">
     <div class="flex-shrink-0">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">QR Code</h3>
-      <div class="bg-white p-4 rounded-lg border border-gray-200 flex flex-col items-center">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ urlencode('http://' . \App\Helpers\NetworkHelper::getServerIP() . ':8000/assessment/' . $assessment->unique_url . '/access') }}" 
-             alt="Quiz QR Code" 
-             class="rounded shadow cursor-pointer hover:scale-105 transition-transform" 
-             onclick="openQRModal()" 
-             title="Click to enlarge QR code" />
+      <div class="bg-white p-4 rounded-lg border border-gray-200 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform" onclick="openQRModal()" title="Click to enlarge QR code">
+        {!! $qrSvg !!}
       </div>
       <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">Click to enlarge for scanning</p>
     </div>
@@ -160,8 +156,9 @@
                 </div>
               @else
                 @php
+                  $timeRemainingHours = $assessment->expires_at ? $assessment->expires_at->diffInHours(now()) : null;
+                  $isExpiringSoon = $assessment->expires_at && $timeRemainingHours < 2;
                   $timeRemaining = $assessment->getTimeUntilExpiration();
-                  $isExpiringSoon = $assessment->expires_at && $assessment->expires_at->diffInHours(now()) < 2;
                 @endphp
                 <div class="flex items-center gap-2 mt-1">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $isExpiringSoon ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' }}">
@@ -172,11 +169,6 @@
                     {{ $timeRemaining }}
                   </span>
                 </div>
-                @if($isExpiringSoon)
-                  <div class="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
-                    ⚠️ Quiz will expire in less than 2 hours
-                  </div>
-                @endif
               @endif
             </div>
             
@@ -321,9 +313,7 @@
     
     <div class="p-8 text-center">
       <div class="bg-white p-6 rounded-lg border border-gray-200 inline-block">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ urlencode('http://' . \App\Helpers\NetworkHelper::getServerIP() . ':8000/assessment/' . $assessment->unique_url . '/access') }}" 
-             alt="Large Quiz QR Code" 
-             class="rounded shadow-lg" />
+        {!! $qrSvgLarge !!}
       </div>
       
       <div class="mt-6 space-y-3">

@@ -465,12 +465,19 @@ class AssessmentController extends Controller
             ->with('student')
             ->get();
 
+        // Generate QR code SVG for the quiz URL
+        $quizUrl = 'http://' . \App\Helpers\NetworkHelper::getServerIP() . ':8000/assessment/' . $assessment->unique_url . '/access';
+        $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(180)->generate($quizUrl);
+        $qrSvgLarge = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(400)->generate($quizUrl);
+
         return view('teacher.assessments.quiz-tokens', compact(
             'classSection',
             'assessment',
             'students',
             'tokens',
-            'term'
+            'term',
+            'qrSvg',
+            'qrSvgLarge'
         ));
     }
 
