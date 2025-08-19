@@ -117,10 +117,9 @@ class Assessment extends Model
 
         $totalDays = $records->count();
         $presentDays = $records->where('status', 'present')->count();
-        $lateDays = $records->where('status', 'late')->count();
 
-        // Calculate percentage: (present + late) / total * 100
-        $attendancePercentage = (($presentDays + $lateDays) / $totalDays) * 100;
+        // Calculate percentage: present / total * 100
+        $attendancePercentage = ($presentDays / $totalDays) * 100;
         
         return round($attendancePercentage, 2);
     }

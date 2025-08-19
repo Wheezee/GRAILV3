@@ -15,6 +15,7 @@ class AttendanceRecord extends Model
         'date',
         'status',
         'term',
+        'remark',
     ];
 
     protected $casts = [
@@ -36,7 +37,7 @@ class AttendanceRecord extends Model
      */
     public function isPresent(): bool
     {
-        return in_array($this->status, ['present', 'late']);
+        return $this->status === 'present';
     }
 
     /**

@@ -125,8 +125,7 @@
                                 $studentRecords = $attendanceData[$student->id] ?? collect();
                                 $totalDays = count($attendanceDates);
                                 $presentDays = $studentRecords->where('status', 'present')->count();
-                                $lateDays = $studentRecords->where('status', 'late')->count();
-                                $attendancePercentage = $totalDays > 0 ? round((($presentDays + $lateDays) / $totalDays) * 100, 1) : 0;
+                                $attendancePercentage = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0;
                             @endphp
                             <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                                 <div class="min-w-0 flex-1">
@@ -135,7 +134,7 @@
                                 </div>
                                 <div class="text-right flex-shrink-0 ml-2">
                                     <div class="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">{{ $attendancePercentage }}%</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $presentDays + $lateDays }}/{{ $totalDays }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $presentDays }}/{{ $totalDays }}</div>
                                 </div>
                             </div>
                         @endforeach
@@ -244,19 +243,18 @@ function showAttendanceForm(dateString, day) {
                     <div class="font-medium text-sm sm:text-base truncate text-gray-900 dark:text-gray-100">${student.first_name} ${student.last_name}</div>
                     <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">${student.student_id}</div>
                 </div>
-                <div class="flex gap-1 sm:gap-2 flex-wrap">
-                    <label class="flex items-center gap-1">
-                        <input type="radio" name="status_${student.id}" value="present" checked class="text-blue-600 focus:ring-blue-500">
-                        <span class="text-xs sm:text-sm text-gray-900 dark:text-gray-100">Present</span>
-                    </label>
-                    <label class="flex items-center gap-1">
-                        <input type="radio" name="status_${student.id}" value="absent" class="text-blue-600 focus:ring-blue-500">
-                        <span class="text-xs sm:text-sm text-gray-900 dark:text-gray-100">Absent</span>
-                    </label>
-                    <label class="flex items-center gap-1">
-                        <input type="radio" name="status_${student.id}" value="late" class="text-blue-600 focus:ring-blue-500">
-                        <span class="text-xs sm:text-sm text-gray-900 dark:text-gray-100">Late</span>
-                    </label>
+                <div class="flex flex-col gap-1 sm:gap-2 flex-1">
+                    <input type="text" name="remark_${student.id}" placeholder="Remark (optional)" class="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-xs sm:text-sm text-gray-900 dark:text-gray-100" />
+                    <div class="flex gap-1 sm:gap-2 flex-wrap">
+                        <label class="flex items-center gap-1">
+                            <input type="radio" name="status_${student.id}" value="present" checked class="text-blue-600 focus:ring-blue-500">
+                            <span class="text-xs sm:text-sm text-gray-900 dark:text-gray-100">Present</span>
+                        </label>
+                        <label class="flex items-center gap-1">
+                            <input type="radio" name="status_${student.id}" value="absent" class="text-blue-600 focus:ring-blue-500">
+                            <span class="text-xs sm:text-sm text-gray-900 dark:text-gray-100">Absent</span>
+                        </label>
+                    </div>
                 </div>
             </div>
         `;
@@ -302,6 +300,7 @@ async function loadAttendanceData(dateString) {
         // Pre-fill form with existing data
         Object.keys(data).forEach(studentId => {
             const status = data[studentId].status;
+            const remark = data[studentId].remark || '';
             console.log(`Setting student ${studentId} to ${status}`);
             const radioButton = document.querySelector(`input[name="status_${studentId}"][value="${status}"]`);
             if (radioButton) {
@@ -309,6 +308,10 @@ async function loadAttendanceData(dateString) {
                 console.log(`Radio button found and set for student ${studentId}`);
             } else {
                 console.log(`Radio button not found for student ${studentId}, status: ${status}`);
+            }
+            const remarkInput = document.querySelector(`input[name="remark_${studentId}"]`);
+            if (remarkInput) {
+                remarkInput.value = remark;
             }
         });
     } catch (error) {
@@ -323,9 +326,12 @@ async function saveAttendance(dateString) {
     const attendance = [];
     students.forEach(student => {
         const status = form.querySelector(`input[name="status_${student.id}"]:checked`).value;
+        const remarkInput = form.querySelector(`input[name="remark_${student.id}"]`);
+        const remark = remarkInput ? remarkInput.value : null;
         attendance.push({
             student_id: student.id,
-            status: status
+            status: status,
+            remark: remark
         });
     });
 

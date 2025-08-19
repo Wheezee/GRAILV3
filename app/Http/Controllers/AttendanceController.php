@@ -77,7 +77,8 @@ class AttendanceController extends Controller
             'date' => 'required|date',
             'attendance' => 'required|array',
             'attendance.*.student_id' => 'required|exists:students,id',
-            'attendance.*.status' => 'required|in:present,absent,late',
+            'attendance.*.status' => 'required|in:present,absent',
+            'attendance.*.remark' => 'nullable|string',
         ]);
 
         $subject = auth()->user()->subjects()->findOrFail($subjectId);
@@ -120,6 +121,7 @@ class AttendanceController extends Controller
                         $existingRecord->update([
                             'status' => $attendanceData['status'],
                             'term' => $term,
+                            'remark' => $attendanceData['remark'] ?? null,
                         ]);
                         \Log::info('Updated existing record');
                     } else {
@@ -130,6 +132,7 @@ class AttendanceController extends Controller
                             'date' => $date,
                             'status' => $attendanceData['status'],
                             'term' => $term,
+                            'remark' => $attendanceData['remark'] ?? null,
                         ]);
                         \Log::info('Created new record');
                     }
@@ -180,9 +183,12 @@ class AttendanceController extends Controller
                 ->whereDate('date', $request->date)
                 ->first();
 
+            $status = $record ? ($record->status === 'late' ? 'present' : $record->status) : 'absent';
+
             $attendanceData[$student->id] = [
                 'student' => $student,
-                'status' => $record ? $record->status : 'absent',
+                'status' => $status,
+                'remark' => $record ? $record->remark : null,
                 'has_record' => $record !== null,
             ];
         }
