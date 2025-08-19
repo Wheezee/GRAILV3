@@ -819,9 +819,7 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook/export', [\App\
     ->name('gradebook.export')
     ->middleware('auth');
 
-Route::post('/subjects/{subject}/classes/{classSection}/gradebook/export2', [\App\Http\Controllers\GradebookExportController::class, 'export2'])
-    ->name('gradebook.export2')
-    ->middleware('auth');
+
 
 // Grading system routes
 Route::post('/grading/test', [\App\Http\Controllers\GradingController::class, 'test'])

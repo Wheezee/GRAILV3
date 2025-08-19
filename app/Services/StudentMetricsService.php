@@ -110,6 +110,12 @@ class StudentMetricsService
         }
 
         $mean = array_sum($scores) / count($scores);
+        
+        // Check if mean is zero to avoid division by zero
+        if ($mean == 0) {
+            return 0; // No variation when all scores are zero
+        }
+        
         $variance = 0;
 
         foreach ($scores as $score) {
