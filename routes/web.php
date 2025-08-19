@@ -1017,6 +1017,11 @@ Route::prefix('api/ml')->middleware('auth')->group(function () {
     Route::get('/predict/student/{studentId}/{classSectionId}/{term}', [MLPredictionController::class, 'getStudentRiskPredictionsByTerm'])->name('ml.predict.student.term');
 });
 
+Route::get('/api/generate-qr', function (Illuminate\Http\Request $request) {
+    $url = $request->query('url');
+    return \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(180)->generate($url);
+});
+
 Route::get('/subjects/{subject}/classes/{classSection}/analytics/{term}', [\App\Http\Controllers\StudentController::class, 'getAnalytics'])->name('class.analytics');
 Route::get('/subjects/{subject}/classes/{classSection}/class-analytics/{term}', [\App\Http\Controllers\StudentController::class, 'showClassAnalytics'])->name('class.analytics.page');
 

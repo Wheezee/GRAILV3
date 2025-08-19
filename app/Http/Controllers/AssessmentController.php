@@ -465,10 +465,13 @@ class AssessmentController extends Controller
             ->with('student')
             ->get();
 
-        // Generate QR code SVG for the quiz URL
-        $quizUrl = 'http://' . \App\Helpers\NetworkHelper::getServerIP() . ':8000/assessment/' . $assessment->unique_url . '/access';
-        $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(180)->generate($quizUrl);
-        $qrSvgLarge = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(400)->generate($quizUrl);
+        // Generate both quiz URLs
+        $quizUrlDocker = 'http://host.docker.internal:8000/assessment/' . $assessment->unique_url . '/access';
+        $quizUrlServer = 'http://' . \App\Helpers\NetworkHelper::getServerIP() . ':8000/assessment/' . $assessment->unique_url . '/access';
+
+        // Default QR code SVG for server IP
+        $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(180)->generate($quizUrlServer);
+        $qrSvgLarge = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(400)->generate($quizUrlServer);
 
         return view('teacher.assessments.quiz-tokens', compact(
             'classSection',
@@ -477,7 +480,9 @@ class AssessmentController extends Controller
             'tokens',
             'term',
             'qrSvg',
-            'qrSvgLarge'
+            'qrSvgLarge',
+            'quizUrlDocker',
+            'quizUrlServer'
         ));
     }
 

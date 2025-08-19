@@ -70,13 +70,24 @@ class MLPredictionService
     {
         // Try localhost first, short timeout
         try {
-            $response = Http::timeout(0.1)
+            $response = Http::timeout(0.05)
                 ->post('http://127.0.0.1:5000/api/predict', $payload);
             if ($response->successful()) {
                 return $response->json();
             }
         } catch (\Exception $e) {
             Log::warning("ML API localhost failed: " . $e->getMessage());
+        }
+
+        // Fallback to host.docker.internal, short timeout
+        try {
+            $response = Http::timeout(0.05)
+                ->post('http://host.docker.internal:5000/api/predict', $payload);
+            if ($response->successful()) {
+                return $response->json();
+            }
+        } catch (\Exception $e) {
+            Log::warning("ML API host.docker.internal failed: " . $e->getMessage());
         }
 
         // Fallback to remote API, longer timeout

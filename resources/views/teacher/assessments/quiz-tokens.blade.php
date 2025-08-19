@@ -118,16 +118,48 @@
     <div class="flex-1">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quiz Access Information</h3>
       <div class="space-y-3">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quiz URL</label>
-                     <div class="flex items-center gap-2 mt-1">
-             <input type="text" value="http://{{ \App\Helpers\NetworkHelper::getServerIP() }}:8000/assessment/{{ $assessment->unique_url }}/access" readonly class="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
-             <button onclick="copyToClipboard('http://{{ \App\Helpers\NetworkHelper::getServerIP() }}:8000/assessment/{{ $assessment->unique_url }}/access')" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
-              <i data-lucide="copy" class="w-4 h-4"></i>
-            </button>
+        <div class="mb-4">
+          <button id="toggle-url" class="btn btn-secondary mb-2">Switch to Docker Host</button>
+          <div>
+            <span id="current-url">{{ $quizUrlServer }}</span>
+          </div>
+          <div id="qr-code">
+            {!! $qrSvg !!}
           </div>
         </div>
-        
+        <script>
+          const quizUrlDocker = @json($quizUrlDocker);
+          const quizUrlServer = @json($quizUrlServer);
+          let usingDocker = false;
+
+          document.getElementById('toggle-url').addEventListener('click', function() {
+            usingDocker = !usingDocker;
+            const url = usingDocker ? quizUrlDocker : quizUrlServer;
+            document.getElementById('current-url').textContent = url;
+            this.textContent = usingDocker ? 'Switch to Server IP' : 'Switch to Docker Host';
+
+            // Fetch new QR code from server
+            fetch(`/api/generate-qr?url=${encodeURIComponent(url)}`)
+              .then(response => response.text())
+              .then(svg => {
+                document.getElementById('qr-code').innerHTML = svg;
+              });
+          });
+        </script>
+        <div class="flex items-center gap-2 mt-1">
+          <input id="quiz-url-input" type="text" value="{{ $quizUrlServer }}" readonly class="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+          <button onclick="copyToClipboard(document.getElementById('quiz-url-input').value)" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <script>
+          // Update input field when toggling
+          document.getElementById('toggle-url').addEventListener('click', function() {
+            const url = usingDocker ? quizUrlDocker : quizUrlServer;
+            document.getElementById('quiz-url-input').value = url;
+          });
+        </script>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Total Questions</label>
