@@ -203,7 +203,7 @@
   </div>
 
   <!-- Add Student Modal -->
-<div id="addStudentModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50 hidden">
+<div id="addStudentModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 hidden">
   <div class="w-full max-w-2xl mx-auto my-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-y-auto max-h-[50vh] p-6">
           <!-- Modal Header -->
     <div class="flex items-center justify-between mb-6">
@@ -321,7 +321,7 @@
   </div>
 
   <!-- Edit Student Modal -->
-<div id="editStudentModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50 hidden">
+<div id="editStudentModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 hidden">
   <div class="w-full max-w-2xl mx-auto my-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-y-auto max-h-[50vh] p-6">
           <!-- Modal Header -->
     <div class="flex items-center justify-between mb-6">

@@ -893,7 +893,6 @@
     </div>
   </div>
   </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Performance Trends with filter
 const trendsCtx = document.getElementById('performanceTrendsChart').getContext('2d');

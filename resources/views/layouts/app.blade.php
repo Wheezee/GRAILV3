@@ -5,21 +5,12 @@
     <title>SmartGrade+</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              evsu: '#d30707',
-              evsuDark: '#b70707',
-            },
-          },
-        },
-      }
+      // Lucide early shim to avoid ReferenceErrors before Vite initializes
+      window.applyLucideIcons = window.applyLucideIcons || function(){};
+      window.lucide = window.lucide || { createIcons: function(){ if (window.applyLucideIcons) window.applyLucideIcons(); } };
     </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 relative">
     <!-- Sidebar -->
@@ -100,7 +91,9 @@
           localStorage.setItem('grail-darkmode', '1');
         }
         
-        lucide.createIcons();
+        if (window.applyLucideIcons) {
+          window.applyLucideIcons();
+        }
       }
       
       // Initial dark mode state
@@ -112,7 +105,9 @@
         html.classList.remove('dark');
         document.getElementById('darkModeIcon').setAttribute('data-lucide', 'moon');
       }
-      lucide.createIcons();
+      if (window.applyLucideIcons) {
+        window.applyLucideIcons();
+      }
 
       function confirmLogout() {
         if (confirm('Are you sure you want to log out?')) {

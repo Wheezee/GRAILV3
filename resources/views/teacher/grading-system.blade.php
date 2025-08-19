@@ -1039,8 +1039,6 @@
   </div>
 </div>
 
-<!-- Chart.js CDN -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 function openAnalyticsModal() {
   document.getElementById('analyticsModal').classList.remove('hidden');
@@ -1114,7 +1112,7 @@ function openAnalyticsModal() {
           </div>
         </div>
       `).join('');
-      if (window.lucide) window.lucide.createIcons();
+      if (window.applyLucideIcons) window.applyLucideIcons();
       // Chart
       var ctx = document.getElementById('performanceChart').getContext('2d');
       if (chartInstance) chartInstance.destroy();
@@ -1205,7 +1203,7 @@ function openAnalyticsModal() {
           <p class="text-sm text-gray-500 dark:text-gray-500">${error.message}</p>
         </div>
       `;
-      if (window.lucide) window.lucide.createIcons();
+      if (window.applyLucideIcons) window.applyLucideIcons();
     });
 }
 function closeAnalyticsModal() {
@@ -1288,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function() {
   updateSelectedCount();
 });
 
-lucide.createIcons();
+if (window.applyLucideIcons) window.applyLucideIcons();
 
 // Bulk unenroll functionality
 document.addEventListener('DOMContentLoaded', function() {
@@ -1414,19 +1412,25 @@ function closeEditStudentModal() {
   document.getElementById('editStudentForm').reset();
 }
 // Attach click event to edit icons after DOM is loaded
-window.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.edit-student-btn').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const student = JSON.parse(this.getAttribute('data-student'));
-      openEditStudentModal(student);
+(function(){
+  const setup = function() {
+    document.querySelectorAll('.edit-student-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const student = JSON.parse(this.getAttribute('data-student'));
+        openEditStudentModal(student);
+      });
     });
-  });
 
-  // Initialize ML risk predictions
-  initializeMLRiskPredictions();
-  
-});
+    // Initialize ML risk predictions
+    initializeMLRiskPredictions();
+  };
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+})();
 
 // ML Risk Prediction Functions
 function initializeMLRiskPredictions() {
@@ -1501,20 +1505,42 @@ function loadRiskPrediction(indicator, studentData) {
       nameCell.classList.remove('text-red-600', 'text-orange-500');
       nameCell.classList.add('text-green-600');
     } else {
-      errorDiv.classList.remove('hidden');
-      // Optionally, remove color if error
-      nameCell.classList.remove('text-red-600', 'text-orange-500', 'text-green-600');
+      // ML unavailable: fallback to heuristic client-side risk based on metrics
+      const fallbackRisks = computeFallbackRisks(studentData);
+      displayDiv.classList.remove('hidden');
+      renderRiskBadges(badgesDiv, fallbackRisks);
+      const hasAtRisk = fallbackRisks.some(risk => risk.code === 'risk_at_risk');
+      if (hasAtRisk) {
+        nameCell.classList.remove('text-green-600', 'text-orange-500');
+        nameCell.classList.add('text-red-600');
+      } else if (fallbackRisks.length > 0) {
+        nameCell.classList.remove('text-red-600', 'text-green-600');
+        nameCell.classList.add('text-orange-500');
+      } else {
+        nameCell.classList.remove('text-red-600', 'text-orange-500');
+        nameCell.classList.add('text-green-600');
+      }
     }
   })
   .catch(error => {
     console.error('ML Prediction error:', error);
     loadingDiv.classList.add('hidden');
-    errorDiv.classList.remove('hidden');
-    // Optionally, remove color if error
     const studentId = indicator.getAttribute('data-student-id');
     const nameCell = document.querySelector(`.student-name-cell[data-student-id="${studentId}"]`);
-    if (nameCell) {
-      nameCell.classList.remove('text-red-600', 'text-orange-500', 'text-green-600');
+    // Fallback heuristic if network/API fails
+    const fallbackRisks = computeFallbackRisks(studentData);
+    displayDiv.classList.remove('hidden');
+    renderRiskBadges(badgesDiv, fallbackRisks);
+    const hasAtRisk = fallbackRisks.some(risk => risk.code === 'risk_at_risk');
+    if (hasAtRisk) {
+      nameCell.classList.remove('text-green-600', 'text-orange-500');
+      nameCell.classList.add('text-red-600');
+    } else if (fallbackRisks.length > 0) {
+      nameCell.classList.remove('text-red-600', 'text-green-600');
+      nameCell.classList.add('text-orange-500');
+    } else if (nameCell) {
+      nameCell.classList.remove('text-red-600', 'text-orange-500');
+      nameCell.classList.add('text-green-600');
     }
   });
 }
@@ -1635,7 +1661,30 @@ function renderRiskBadges(badgesDiv, risks) {
   }
 
   badgesDiv.innerHTML = html;
-  lucide.createIcons();
+  if (window.applyLucideIcons) { window.applyLucideIcons(); }
+}
+
+// Simple client-side heuristic fallback when ML service is unavailable
+function computeFallbackRisks(metrics) {
+  const risks = [];
+  const avg = Number(metrics.avg_score_pct) || 0;
+  const variation = Number(metrics.variation_score_pct) || 0;
+  const late = Number(metrics.late_submission_pct) || 0;
+  const missed = Number(metrics.missed_submission_pct) || 0;
+
+  if (avg < 70) {
+    risks.push({ code: 'risk_at_risk', label: 'At Risk', description: 'Low average score' });
+  }
+  if (variation > 20) {
+    risks.push({ code: 'risk_inconsistent_performer', label: 'Inconsistent Performer', description: 'High score variation' });
+  }
+  if (late > 30) {
+    risks.push({ code: 'risk_chronic_procrastinator', label: 'Chronic Procrastinator', description: 'High late submission rate' });
+  }
+  if (missed > 20) {
+    risks.push({ code: 'risk_incomplete', label: 'Incomplete', description: 'High missed submission rate' });
+  }
+  return risks;
 }
 
 // ML Debug Functions

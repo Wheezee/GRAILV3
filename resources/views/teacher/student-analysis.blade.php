@@ -704,7 +704,7 @@
 </div>
 
 <!-- Annotation Modal -->
-<div id="annotationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+<div id="annotationModal" class="fixed inset-0 bg-black/50 hidden z-50">
     <div class="flex items-center justify-center min-h-screen p-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
             <div class="p-6">
@@ -733,8 +733,28 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Robust init: wait for both DOM and Chart bundle to be ready, then init once
+(function() {
+    let initialized = false;
+    function tryInit() {
+        if (initialized) return;
+        if (!window.Chart) return;
+        // Ensure canvases are in DOM
+        if (!document.getElementById('radarChart')) return;
+        initialized = true;
+        initStudentAnalysisCharts();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryInit);
+    } else {
+        // DOM is already ready
+        setTimeout(tryInit, 0);
+    }
+    window.addEventListener('grail:charts-ready', tryInit);
+})();
+
+function initStudentAnalysisCharts() {
 // Radar Chart Data
 const radarData = {
     labels: ['Average', 'Variation', 'Late Submissions', 'Missed Assignments', 'Completion Rate'],
@@ -758,7 +778,7 @@ const radarData = {
 };
 
 // Create Radar Chart
-new Chart(document.getElementById('radarChart').getContext('2d'), {
+new window.Chart(document.getElementById('radarChart').getContext('2d'), {
     type: 'radar',
     data: radarData,
     options: {
@@ -800,7 +820,7 @@ const assessmentTypeRadarData = {
     }]
 };
 
-new Chart(document.getElementById('assessmentTypeRadarChart').getContext('2d'), {
+new window.Chart(document.getElementById('assessmentTypeRadarChart').getContext('2d'), {
     type: 'radar',
     data: assessmentTypeRadarData,
     options: {
@@ -849,7 +869,7 @@ new Chart(document.getElementById('assessmentTypeRadarChart').getContext('2d'), 
         return null;
     }));
     
-    new Chart(document.getElementById('chart-{{ $type->id }}').getContext('2d'), {
+    new window.Chart(document.getElementById('chart-{{ $type->id }}').getContext('2d'), {
         type: 'line',
         data: {
             labels: labels{{ $type->id }},
@@ -931,6 +951,8 @@ new Chart(document.getElementById('assessmentTypeRadarChart').getContext('2d'), 
         }
     });
 @endforeach
+
+}
 
 // Load existing annotations when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -1049,7 +1071,7 @@ function addAnnotationToUI(annotation) {
     `;
     
     annotationsList.insertAdjacentHTML('afterbegin', annotationHtml);
-    lucide.createIcons();
+    if (window.applyLucideIcons) window.applyLucideIcons();
 }
 
 // Function to delete annotation
