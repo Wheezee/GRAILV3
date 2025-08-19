@@ -109,7 +109,7 @@
   <div class="flex flex-col lg:flex-row items-start gap-6">
     <div class="flex-shrink-0">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">QR Code</h3>
-      <div class="bg-white p-4 rounded-lg border border-gray-200 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform" onclick="openQRModal()" title="Click to enlarge QR code">
+      <div id="qr-code" class="bg-white p-4 rounded-lg border border-gray-200 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform" onclick="openQRModal()" title="Click to enlarge QR code">
         {!! $qrSvg !!}
       </div>
       <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">Click to enlarge for scanning</p>
@@ -126,9 +126,6 @@
           <div>
             <span id="current-url">{{ $quizUrlServer }}</span>
           </div>
-          <div id="qr-code">
-            {!! $qrSvg !!}
-          </div>
         </div>
         <script>
           const quizUrlServer = @json($quizUrlServer);
@@ -137,7 +134,10 @@
           const btnNormal = document.getElementById('use-normal');
           const btnPython = document.getElementById('use-python');
 
+          let currentSelectedUrl = quizUrlServer;
+
           function setUrl(url) {
+            currentSelectedUrl = url;
             document.getElementById('current-url').textContent = url;
             document.getElementById('quiz-url-input').value = url;
             fetch(`/api/generate-qr?url=${encodeURIComponent(url)}`)
@@ -366,7 +366,7 @@
     </div>
     
     <div class="p-8 text-center">
-      <div class="bg-white p-6 rounded-lg border border-gray-200 inline-block">
+      <div class="bg-white p-6 rounded-lg border border-gray-200 inline-block" id="qr-large">
         {!! $qrSvgLarge !!}
       </div>
       
@@ -400,6 +400,12 @@ let lastUpdateTime = new Date();
 function openQRModal() {
   document.getElementById('qrModal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  // Refresh large QR to match the currently selected URL
+  if (typeof currentSelectedUrl !== 'undefined') {
+    fetch(`/api/generate-qr?size=400&url=${encodeURIComponent(currentSelectedUrl)}`)
+      .then(r => r.text())
+      .then(svg => { document.getElementById('qr-large').innerHTML = svg; });
+  }
 }
 
 function closeQRModal() {
