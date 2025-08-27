@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
+class RiskPredictionController extends Controller
+{
+    public function predict(Request $request)
+    {
+        $request->validate([
+            'avg_score_pct' => 'required|numeric|min:0|max:100',
+            'variation_score_pct' => 'required|numeric|min:0|max:100',
+            'late_submission_pct' => 'required|numeric|min:0|max:100',
+            'missed_submission_pct' => 'required|numeric|min:0|max:100',
+        ]);
+        
+        $response = Http::post('http://localhost:5000/api/predict', $request->all());
+        
+        if ($response->successful()) {
+            $result = $response->json();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'error' => 'Prediction failed'
+        ], 500);
+    }
+}
+
+response example
+{
+  "success": true,
+  "has_risks": true,
+  "risks": [
+    {
+      "code": "risk_at_risk",
+      "label": "At Risk",
+      "description": "Student shows signs of being at risk"
+    },
+    {
+      "code": "risk_chronic_procrastinator", 
+      "label": "Chronic Procrastinator",
+      "description": "Student frequently delays assignments"
+    }
+  ],
+  "risk_count": 2,
+  "input_data": {
+    "avg_score_pct": 68,
+    "variation_score_pct": 35,
+    "late_submission_pct": 40,
+    "missed_submission_pct": 10
+  }
+}
