@@ -337,6 +337,7 @@ Route::get('/subjects/{subject}/classes', function ($subjectId) {
     $subject = auth()->user()->subjects()->findOrFail($subjectId);
     $classes = \App\Models\ClassSection::where('subject_id', $subject->id)
         ->where('teacher_id', auth()->id())
+        ->withCount('students')
         ->orderBy('section')
         ->get();
     return view('teacher.subject-classes', compact('subject', 'classes'));

@@ -124,7 +124,7 @@
           <div class="mt-2 text-sm text-gray-700 dark:text-gray-200">
             <div class="flex items-center gap-2">
               <i data-lucide="book-open" class="w-4 h-4 text-red-600"></i>
-              <span data-class-students="{{ $class->student_count }}">{{ $class->student_count }} students</span>
+              <span data-class-students="{{ $class->students_count ?? $class->student_count }}">{{ $class->students_count ?? $class->student_count }} students</span>
             </div>
           </div>
         </a>
