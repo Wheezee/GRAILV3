@@ -861,6 +861,7 @@
           <h4 id="presetTitle" class="font-semibold text-gray-900 dark:text-gray-100 mb-2"></h4>
           <div id="presetHypotheses" class="text-sm text-gray-700 dark:text-gray-300 mb-3"></div>
           <div id="presetStats" class="text-sm text-gray-900 dark:text-gray-100 mb-2"></div>
+          <div id="presetDecision" class="text-xs text-gray-600 dark:text-gray-400 mb-2"></div>
           <div id="presetInterpret" class="text-sm text-gray-700 dark:text-gray-300"></div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1559,11 +1560,30 @@ function calculateCorrelation() {
     return;
   }
   
+  // Auto-select method based on normality when both variables are continuous
+  const bothContinuous = xValues.every(v => typeof v === 'number' && isFinite(v)) && yValues.every(v => typeof v === 'number' && isFinite(v));
+  let chosenMethod = method;
+  let normalityNote = '';
+  if (bothContinuous && xValues.length >= 5 && yValues.length >= 5) {
+    const nx = isApproximatelyNormal(xValues);
+    const ny = isApproximatelyNormal(yValues);
+    const bothNormal = nx.isNormal && ny.isNormal;
+    chosenMethod = bothNormal ? 'pearson' : 'spearman';
+    normalityNote = `Method chosen: ${bothNormal ? 'Pearson' : 'Spearman'} — ${bothNormal ? 'both variables are approximately normal' : 'at least one variable is non-normal'} (Shapiro–Francia W' X=${nx.wPrime.toFixed(3)}, Y=${ny.wPrime.toFixed(3)}).`;
+  }
+
   // Calculate correlation
-  const correlation = calculateCorrelationCoefficient(xValues, yValues, method);
+  const correlation = calculateCorrelationCoefficient(xValues, yValues, chosenMethod);
   
   // Display results
-  displayCorrelationResults(correlation, xValues, yValues, xValuesForHistogram, yValuesForHistogram, labels, variableX, variableY, method);
+  displayCorrelationResults(correlation, xValues, yValues, xValuesForHistogram, yValuesForHistogram, labels, variableX, variableY, chosenMethod);
+
+  if (normalityNote) {
+    const interpEl = document.getElementById('correlationInterpretation');
+    if (interpEl && interpEl.textContent) {
+      interpEl.textContent = interpEl.textContent + ' ' + normalityNote;
+    }
+  }
   
   // Hide loading
   document.getElementById('correlationLoading').classList.add('hidden');
@@ -2477,6 +2497,66 @@ function getVariableLabel(variable) {
   return labels[variable] || variable;
 }
 
+// Normality helpers (Shapiro–Francia style approximation + skew/kurtosis heuristic)
+function isApproximatelyNormal(values) {
+  const nums = values.filter(v => typeof v === 'number' && isFinite(v));
+  const n = nums.length;
+  if (n < 5) { return { isNormal: false, wPrime: 0 }; }
+  const sorted = [...nums].sort((a,b)=>a-b);
+  const mean = nums.reduce((a,b)=>a+b,0)/n;
+  const sd = Math.sqrt(nums.reduce((s,v)=>s+Math.pow(v-mean,2),0)/(n-1)) || 0;
+  const z = sd === 0 ? nums.map(()=>0) : nums.map(v => (v-mean)/sd);
+  const skew = (n/((n-1)*(n-2))) * z.reduce((s,v)=>s+Math.pow(v,3),0);
+  const kurt = ((n*(n+1))/((n-1)*(n-2)*(n-3))) * z.reduce((s,v)=>s+Math.pow(v,4),0) - (3*((n-1)*(n-1))/((n-2)*(n-3)));
+  // Shapiro–Francia W' using Blom expected order stats
+  const m = new Array(n).fill(0).map((_,i)=>inverseStandardNormal((i+1-0.375)/(n+0.25)));
+  const mMean = m.reduce((a,b)=>a+b,0)/n;
+  const mC = m.map(v=>v-mMean);
+  const norm = Math.sqrt(mC.reduce((s,v)=>s+v*v,0)) || 1;
+  const a = mC.map(v=>v/norm);
+  const y = [...sorted];
+  const yMean = y.reduce((a,b)=>a+b,0)/n;
+  const num = a.reduce((s,ai,i)=>s+ai*y[i],0);
+  const den = Math.sqrt(y.reduce((s,vi)=>s+Math.pow(vi-yMean,2),0)) || 1;
+  const wPrime = Math.pow(num/den,2);
+  // Heuristic decision combining W' and moments
+  const normal = (wPrime > 0.95) && (Math.abs(skew) < 0.5) && (Math.abs(kurt) < 1.0);
+  return { isNormal: normal, wPrime };
+}
+
+function inverseStandardNormal(p) {
+  // Acklam's approximation
+  const a1=-39.69683028665376,a2=220.9460984245205,a3=-275.9285104469687,a4=138.3577518672690,a5=-30.66479806614716,a6=2.506628277459239;
+  const b1=-54.47609879822406,b2=161.5858368580409,b3=-155.6989798598866,b4=66.80131188771972,b5=-13.28068155288572;
+  const c1=-7.784894002430293e-03,c2=-0.3223964580411365,c3=-2.400758277161838,c4=-2.549732539343734,c5=4.374664141464968,c6=2.938163982698783;
+  const d1=7.784695709041462e-03,d2=0.3224671290700398,d3=2.445134137142996,d4=3.754408661907416;
+  const pl=0.02425, pu=1-pl;
+  if (p<=0) return -Infinity; if (p>=1) return Infinity;
+  let x;
+  if (p<pl) {
+    const q=Math.sqrt(-2*Math.log(p));
+    x=((((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6))/((((d1*q+d2)*q+d3)*q+d4));
+  } else if (p>pu) {
+    const q=Math.sqrt(-2*Math.log(1-p));
+    x=-(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1*q+d2)*q+d3)*q+d4));
+  } else {
+    const q=p-0.5; const r=q*q;
+    x=((((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6)*q)/(((((b1*r+b2)*r+b3)*r+b4)*r+b5)*1+1e-12);
+  }
+  // One step Halley refinement
+  const e=0.5*(1+erf(x/Math.SQRT2))-p; const u=e*Math.SQRT2*Math.PI**0.5*Math.exp(x*x/2);
+  return x-u/(1+x*u/2);
+}
+
+function erf(x){
+  // Abramowitz-Stegun approximation
+  const sign = x<0?-1:1; x=Math.abs(x);
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const t=1/(1+p*x);
+  const y=1-((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return sign*y;
+}
+
 // Create Assessment Scatter Plots
 function createAssessmentScatterPlots() {
   const assessmentData = @json($analytics['assessment_difficulty']);
@@ -3104,13 +3184,19 @@ function runPreset(key) {
       if (!isNaN(att) && !isNaN(qavg)) { x.push(att); y.push(qavg); }
     });
     if (x.length < 2) { empty.textContent = 'Not enough data for Attendance vs Quiz Average.'; empty.classList.remove('hidden'); return; }
-    const r = calculateCorrelationCoefficient(x, y, 'pearson');
+    // Decide method by normality
+    const nx = isApproximatelyNormal(x);
+    const ny = isApproximatelyNormal(y);
+    const bothNormal = nx.isNormal && ny.isNormal;
+    const method = bothNormal ? 'pearson' : 'spearman';
+    const r = calculateCorrelationCoefficient(x, y, method);
     const n = x.length;
     const t = (1 - r*r) === 0 ? 0 : r * Math.sqrt((n - 2) / (1 - r*r));
     const p = calculatePValue(t, n - 2);
-    document.getElementById('presetTitle').textContent = 'Attendance (%) → Quiz Average (%) (Pearson)';
+    document.getElementById('presetTitle').textContent = `Attendance (%) → Quiz Average (%) (${method === 'pearson' ? 'Pearson' : 'Spearman'})`;
     document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No correlation between attendance and quiz average.</div><div><b>H₁:</b> There is a correlation between attendance and quiz average.</div>';
     document.getElementById('presetStats').textContent = `r = ${r.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(r)}`;
+    document.getElementById('presetDecision').textContent = `Decision: Attendance is ${nx.isNormal ? 'approximately normal' : 'non-normal'} (W'=${nx.wPrime.toFixed(3)}), Quiz Average is ${ny.isNormal ? 'approximately normal' : 'non-normal'} (W'=${ny.wPrime.toFixed(3)}). Therefore, ${method === 'pearson' ? 'Pearson was used (both normal).' : 'Spearman was used (at least one non-normal).'}`;
     const dir = r > 0 ? 'positive' : r < 0 ? 'negative' : 'no';
     const signif = (typeof p === 'number' && p < 0.05) ? 'statistically significant' : 'not statistically significant';
     document.getElementById('presetInterpret').textContent = `There is a ${strengthLabel(r).toLowerCase()} ${dir} correlation, ${signif} at α = 0.05.`;
@@ -3166,12 +3252,17 @@ function runPreset(key) {
       if (!isNaN(att) && !isNaN(grade)) { x.push(att); y.push(grade); }
     });
     if (x.length < 2) { empty.textContent = 'Not enough data for Attendance vs Current Grade.'; empty.classList.remove('hidden'); return; }
-    const r = calculateCorrelationCoefficient(x, y, 'pearson');
+    const nx = isApproximatelyNormal(x);
+    const ny = isApproximatelyNormal(y);
+    const bothNormal = nx.isNormal && ny.isNormal;
+    const method = bothNormal ? 'pearson' : 'spearman';
+    const r = calculateCorrelationCoefficient(x, y, method);
     const n = x.length; const t = (1 - r*r) === 0 ? 0 : r * Math.sqrt((n - 2) / (1 - r*r));
     const p = calculatePValue(t, n - 2);
-    document.getElementById('presetTitle').textContent = 'Attendance (%) → Current Grade (%) (Pearson)';
+    document.getElementById('presetTitle').textContent = `Attendance (%) → Current Grade (%) (${method === 'pearson' ? 'Pearson' : 'Spearman'})`;
     document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No correlation between attendance and current grade.</div><div><b>H₁:</b> There is a correlation between attendance and current grade.</div>';
     document.getElementById('presetStats').textContent = `r = ${r.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(r)}`;
+    document.getElementById('presetDecision').textContent = `Decision: Attendance is ${nx.isNormal ? 'approximately normal' : 'non-normal'} (W'=${nx.wPrime.toFixed(3)}), Current Grade is ${ny.isNormal ? 'approximately normal' : 'non-normal'} (W'=${ny.wPrime.toFixed(3)}). Therefore, ${method === 'pearson' ? 'Pearson was used (both normal).' : 'Spearman was used (at least one non-normal).'}`;
     const dir = r > 0 ? 'positive' : r < 0 ? 'negative' : 'no';
     const signif = (typeof p === 'number' && p < 0.05) ? 'statistically significant' : 'not statistically significant';
     document.getElementById('presetInterpret').textContent = `There is a ${strengthLabel(r).toLowerCase()} ${dir} correlation, ${signif} at α = 0.05.`;
@@ -3199,15 +3290,20 @@ function runPreset(key) {
       if (!isNaN(late) && !isNaN(grade)) { x.push(late); y.push(grade); }
     });
     if (x.length < 2) { empty.textContent = 'Not enough data for Late Submissions vs Current Grade.'; empty.classList.remove('hidden'); return; }
-    const rho = calculateCorrelationCoefficient(x, y, 'spearman');
+    const nx = isApproximatelyNormal(x);
+    const ny = isApproximatelyNormal(y);
+    const bothNormal = nx.isNormal && ny.isNormal;
+    const method = bothNormal ? 'pearson' : 'spearman';
+    const rho = calculateCorrelationCoefficient(x, y, method);
     const n = x.length; const t = (1 - rho*rho) === 0 ? 0 : rho * Math.sqrt((n - 2) / (1 - rho*rho));
     const p = calculatePValue(t, n - 2);
-    document.getElementById('presetTitle').textContent = 'Late Submissions (%) → Current Grade (%) (Spearman)';
+    document.getElementById('presetTitle').textContent = `Late Submissions (%) → Current Grade (%) (${method === 'pearson' ? 'Pearson' : 'Spearman'})`;
     document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No monotonic association between late submissions and current grade.</div><div><b>H₁:</b> There is a monotonic association.</div>';
-    document.getElementById('presetStats').textContent = `ρ = ${rho.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(rho)}`;
+    document.getElementById('presetStats').textContent = `${method === 'pearson' ? 'r' : 'ρ'} = ${rho.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(rho)}`;
+    document.getElementById('presetDecision').textContent = `Decision: Late Submissions is ${nx.isNormal ? 'approximately normal' : 'non-normal'} (W'=${nx.wPrime.toFixed(3)}), Current Grade is ${ny.isNormal ? 'approximately normal' : 'non-normal'} (W'=${ny.wPrime.toFixed(3)}). Therefore, ${method === 'pearson' ? 'Pearson was used (both normal).' : 'Spearman was used (at least one non-normal).'}`;
     const dir = rho > 0 ? 'positive' : rho < 0 ? 'negative' : 'no';
     const signif = (typeof p === 'number' && p < 0.05) ? 'statistically significant' : 'not statistically significant';
-    document.getElementById('presetInterpret').textContent = `There is a ${strengthLabel(rho).toLowerCase()} ${dir} monotonic association, ${signif} at α = 0.05.`;
+    document.getElementById('presetInterpret').textContent = `There is a ${strengthLabel(rho).toLowerCase()} ${dir} ${method === 'pearson' ? 'linear correlation' : 'monotonic association'}, ${signif} at α = 0.05.`;
     document.getElementById('presetChartTitle').textContent = 'Scatter (values) with linear trend';
     const ctxIv = document.getElementById('preset_iv_hist').getContext('2d');
     const ctxDv = document.getElementById('preset_dv_hist').getContext('2d');
