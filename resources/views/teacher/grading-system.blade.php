@@ -415,6 +415,12 @@
       <option value="safe">Safe</option>
     </select>
   </div>
+  <div>
+    <button id="ml-analysis-btn" class="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg shadow transition-colors focus:outline-none">
+      <i data-lucide="brain" class="w-4 h-4"></i>
+      <span>Run ML Analysis</span>
+    </button>
+  </div>
 </div>
 <!-- Students Table -->
 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
@@ -1422,8 +1428,12 @@ function closeEditStudentModal() {
       });
     });
 
-    // Initialize ML risk predictions
-    initializeMLRiskPredictions();
+    // Initialize ML analysis button
+    initializeMLAnalysisButton();
+    
+    // ML predictions are now completely disabled by default
+    // Users must manually click the "Run ML Analysis" button to start
+    // This prevents any blocking issues on page load
   };
   if (document.readyState === 'loading') {
     window.addEventListener('DOMContentLoaded', setup);
@@ -1435,14 +1445,90 @@ function closeEditStudentModal() {
 // ML Risk Prediction Functions
 function initializeMLRiskPredictions() {
   const riskIndicators = document.querySelectorAll('.ml-risk-indicator');
-  let delay = 0;
-  riskIndicators.forEach((indicator, idx) => {
-    const studentData = JSON.parse(indicator.getAttribute('data-student-data'));
-    setTimeout(() => {
-      loadRiskPrediction(indicator, studentData);
-    }, delay);
-    delay += 100; // 100ms between each call, adjust as needed
-  });
+  
+  // Show global loading indicator
+  const globalLoadingDiv = document.createElement('div');
+  globalLoadingDiv.id = 'ml-global-loading';
+  globalLoadingDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg z-50 flex items-center gap-2';
+  globalLoadingDiv.innerHTML = `
+    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+    <span>Processing ML predictions...</span>
+  `;
+  document.body.appendChild(globalLoadingDiv);
+  
+  let completedCount = 0;
+  const totalCount = riskIndicators.length;
+  
+  // Process in very small chunks with longer delays to prevent blocking
+  const chunkSize = 1; // Process 1 student at a time
+  let currentIndex = 0;
+  
+  function processNextChunk() {
+    const chunk = Array.from(riskIndicators).slice(currentIndex, currentIndex + chunkSize);
+    
+    if (chunk.length === 0) {
+      // All chunks processed, remove global loading
+      const loadingDiv = document.getElementById('ml-global-loading');
+      if (loadingDiv) {
+        loadingDiv.remove();
+      }
+      return;
+    }
+    
+    // Process this chunk
+    chunk.forEach((indicator) => {
+      const studentData = JSON.parse(indicator.getAttribute('data-student-data'));
+      
+      // Use setTimeout to ensure non-blocking
+      setTimeout(() => {
+        loadRiskPrediction(indicator, studentData).finally(() => {
+          completedCount++;
+          if (completedCount === totalCount) {
+            // All ML calls completed, remove global loading
+            const loadingDiv = document.getElementById('ml-global-loading');
+            if (loadingDiv) {
+              loadingDiv.remove();
+            }
+          }
+        });
+      }, 0);
+    });
+    
+    // Schedule next chunk with a longer delay
+    currentIndex += chunkSize;
+    setTimeout(processNextChunk, 500); // 500ms delay between each student
+  }
+  
+  // Start processing chunks
+  processNextChunk();
+}
+
+// Initialize ML analysis button
+function initializeMLAnalysisButton() {
+  const mlButton = document.getElementById('ml-analysis-btn');
+  
+  if (mlButton) {
+    mlButton.addEventListener('click', () => {
+      // Disable button during processing
+      mlButton.disabled = true;
+      mlButton.innerHTML = `
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        <span>Processing...</span>
+      `;
+      
+      // Start ML predictions
+      initializeMLRiskPredictions();
+      
+      // Re-enable button after processing
+      setTimeout(() => {
+        mlButton.disabled = false;
+        mlButton.innerHTML = `
+          <i data-lucide="brain" class="w-4 h-4"></i>
+          <span>Run ML Analysis</span>
+        `;
+      }, 10000); // Re-enable after 10 seconds
+    });
+  }
 }
 
 // Alternative initialization function that uses term-specific endpoint
@@ -1473,7 +1559,7 @@ function loadRiskPrediction(indicator, studentData) {
   errorDiv.classList.add('hidden');
 
   // Make API call with term-filtered data (data is already filtered by current term)
-  fetch('/api/ml/predict/student', {
+  return fetch('/api/ml/predict/student', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
