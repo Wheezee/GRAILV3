@@ -74,8 +74,23 @@ class BatchEnrollmentController extends Controller
                     continue;
                 }
 
-                // Get data from row array
+                // Get data from row array and normalize/trim values
                 $data = $row;
+                $data = array_map(function ($value) {
+                    if (is_null($value)) {
+                        return '';
+                    }
+                    if (is_string($value)) {
+                        return trim($value);
+                    }
+                    return trim((string) $value);
+                }, $data);
+
+                // Skip completely empty rows (prevents false validation on trailing blanks)
+                $nonEmptyCount = count(array_filter($data, function ($v) { return $v !== ''; }));
+                if ($nonEmptyCount === 0) {
+                    continue;
+                }
                 
                 // Check if we have enough columns (at least Student ID and Fullname)
                 if (count($data) < 2) {
@@ -84,11 +99,11 @@ class BatchEnrollmentController extends Controller
                 }
 
                 // Parse the full name from "LASTNAME, FIRSTNAME MIDDLENAME" format
-                $fullName = trim($data[1]);
+                $fullName = isset($data[1]) ? trim($data[1]) : '';
                 $nameParts = $this->parseFullName($fullName);
 
                 $studentData = [
-                    'student_id' => trim($data[0]), // Column A: Student ID
+                    'student_id' => isset($data[0]) ? trim($data[0]) : '', // Column A: Student ID
                     'first_name' => $nameParts['first_name'],
                     'last_name' => $nameParts['last_name'],
                     'middle_name' => $nameParts['middle_name'],
@@ -298,7 +313,33 @@ class BatchEnrollmentController extends Controller
             $rows = [];
 
             foreach ($sheet->toArray(null, true, true, true) as $row) {
-                $rows[] = array_values($row); // reset keys to 0-based
+                // Normalize each cell: convert nulls to empty string and trim
+                $normalized = array_map(function ($value) {
+                    if (is_null($value)) {
+                        return '';
+                    }
+                    if (is_string($value)) {
+                        return trim($value);
+                    }
+                    return trim((string) $value);
+                }, array_values($row));
+                $rows[] = $normalized; // reset keys to 0-based with normalization
+            }
+
+            // Remove trailing completely empty rows
+            while (!empty($rows)) {
+                $last = end($rows);
+                $hasContent = false;
+                foreach ($last as $cell) {
+                    if ($cell !== '') {
+                        $hasContent = true;
+                        break;
+                    }
+                }
+                if ($hasContent) {
+                    break;
+                }
+                array_pop($rows);
             }
 
             return $rows;

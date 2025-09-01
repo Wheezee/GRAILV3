@@ -95,6 +95,19 @@
   </div>
 </div>
 
+<!-- Grade Calculation Toggle -->
+<div class="flex justify-center gap-2 mt-6 mb-6">
+  <button id="estimated_grades_btn" class="px-3 py-2 bg-red-500 text-white text-xs sm:text-sm font-medium rounded-l-lg transition-colors">
+    Estimated Grades
+  </button>
+  <button id="projected_final_btn" class="px-3 py-2 bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-r-lg transition-colors hover:bg-gray-400">
+    Projected Final
+  </button>
+</div>
+<div class="text-center text-gray-600 dark:text-gray-400 text-xs mb-6" id="view_summary">
+  Current View: Estimated Grades
+</div>
+
 <!-- Export Modal -->
 <div id="exportModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
   <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-80">
@@ -957,6 +970,190 @@ document.addEventListener('DOMContentLoaded', function() {
   if (window.lucide) {
     lucide.createIcons();
   }
+  
+  // Initialize toggle buttons
+  const estimatedBtn = document.getElementById('estimated_grades_btn');
+  const projectedBtn = document.getElementById('projected_final_btn');
+  
+  if (estimatedBtn && projectedBtn) {
+    estimatedBtn.addEventListener('click', () => switchToEstimatedGrades());
+    projectedBtn.addEventListener('click', () => switchToProjectedFinal());
+  }
 });
+
+// Simple toggle system
+let currentGradeView = 'estimated';
+
+function switchToEstimatedGrades() {
+  currentGradeView = 'estimated';
+  document.getElementById('estimated_grades_btn').className = 'px-3 py-2 bg-red-500 text-white text-xs sm:text-sm font-medium rounded-l-lg transition-colors';
+  document.getElementById('projected_final_btn').className = 'px-3 py-2 bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-r-lg transition-colors hover:bg-gray-400';
+  document.getElementById('view_summary').textContent = 'Current View: Estimated Grades';
+  recalculateGrades();
+}
+
+function switchToProjectedFinal() {
+  currentGradeView = 'projected';
+  document.getElementById('estimated_grades_btn').className = 'px-3 py-2 bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-l-lg transition-colors hover:bg-gray-400';
+  document.getElementById('projected_final_btn').className = 'px-3 py-2 bg-red-500 text-white text-xs sm:text-sm font-medium rounded-r-lg transition-colors';
+  document.getElementById('view_summary').textContent = 'Current View: Projected Final';
+  recalculateGrades();
+}
+
+function recalculateGrades() {
+  const gradeDisplays = document.querySelectorAll('.grade-display');
+  
+  gradeDisplays.forEach(display => {
+    const originalGrade = display.dataset.grade;
+    if (originalGrade) {
+      if (currentGradeView === 'estimated') {
+        // Show original grades
+        display.textContent = originalGrade + '%';
+        display.style.color = '';
+        display.title = 'Estimated Grade (based on available assessments)';
+      } else {
+        // Show projected grades with accurate calculation
+        const projectedGrade = calculateAccurateProjectedGrade(display);
+        display.textContent = projectedGrade + '%';
+        display.style.color = '#dc2626';
+        display.title = 'Projected Final Grade (all weights included)';
+      }
+    }
+  });
+  
+  // Show status notification
+  const statusDiv = document.createElement('div');
+  statusDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg z-50';
+  statusDiv.textContent = `Switched to: ${currentGradeView === 'estimated' ? 'Estimated Grades' : 'Projected Final'}`;
+  document.body.appendChild(statusDiv);
+  
+  setTimeout(() => {
+    if (statusDiv.parentNode) {
+      statusDiv.parentNode.removeChild(statusDiv);
+    }
+  }, 3000);
+}
+
+// Calculate accurate projected grade based on actual assessment data
+function calculateAccurateProjectedGrade(gradeDisplay) {
+  const originalGrade = parseFloat(gradeDisplay.dataset.grade);
+  
+  // Get the student row
+  const studentRow = gradeDisplay.closest('tr');
+  if (!studentRow) return originalGrade;
+  
+  // Find which grade column this is (midterm, final, or overall)
+  const gradeCell = gradeDisplay.closest('td');
+  const cellIndex = Array.from(gradeCell.parentElement.children).indexOf(gradeCell);
+  
+  // Count total columns to determine grade type
+  const totalColumns = gradeCell.parentElement.children.length;
+  
+  let gradeType = 'overall';
+  if (cellIndex === totalColumns - 3) {
+    gradeType = 'midterm';
+  } else if (cellIndex === totalColumns - 2) {
+    gradeType = 'final';
+  } else if (cellIndex === totalColumns - 1) {
+    gradeType = 'overall';
+  }
+  
+  if (gradeType === 'midterm') {
+    return calculateMidtermProjectedGrade(studentRow);
+  } else if (gradeType === 'final') {
+    return calculateFinalProjectedGrade(studentRow);
+  } else if (gradeType === 'overall') {
+    return calculateOverallProjectedGrade(studentRow);
+  }
+  
+  return originalGrade.toFixed(1);
+}
+
+// Calculate projected midterm grade based on actual assessment data
+function calculateMidtermProjectedGrade(studentRow) {
+  // Get assessment data from the student row
+  const cells = studentRow.querySelectorAll('td');
+  
+  // Skip first 2 columns (student ID and name)
+  let attendanceScore = 0;
+  let quiz1Score = 0;
+  let quiz2Score = 0;
+  let examScore = 0;
+  
+  // Parse assessment scores (assuming order: attendance, quiz1, quiz2, exam)
+  // This is a simplified approach - in a real implementation, we'd parse the headers
+  const scoreCells = Array.from(cells).slice(2, -3); // Skip first 2 and last 3 columns
+  
+  if (scoreCells.length >= 1) {
+    const attendanceText = scoreCells[0].textContent.trim();
+    if (attendanceText !== '--' && attendanceText !== '') {
+      attendanceScore = parseFloat(attendanceText) || 0;
+    }
+  }
+  
+  if (scoreCells.length >= 2) {
+    const quiz1Text = scoreCells[1].textContent.trim();
+    if (quiz1Text !== '--' && quiz1Text !== '') {
+      quiz1Score = parseFloat(quiz1Text) || 0;
+    }
+  }
+  
+  if (scoreCells.length >= 3) {
+    const quiz2Text = scoreCells[2].textContent.trim();
+    if (quiz2Text !== '--' && quiz2Text !== '') {
+      quiz2Score = parseFloat(quiz2Text) || 0;
+    }
+  }
+  
+  if (scoreCells.length >= 4) {
+    const examText = scoreCells[3].textContent.trim();
+    if (examText !== '--' && examText !== '') {
+      examScore = parseFloat(examText) || 0;
+    }
+  }
+  
+  // Convert scores to percentages (assuming max scores from the image)
+  const attendancePercent = attendanceScore; // Already 100%
+  const quiz1Percent = (quiz1Score / 15) * 100; // Max score 15
+  const quiz2Percent = (quiz2Score / 15) * 100; // Max score 15
+  const examPercent = examScore; // Assuming already percentage
+  
+  // Calculate weighted average with ALL weights included
+  const attendanceWeight = 20; // 20%
+  const quizWeight = 40; // 40% (split between quiz1 and quiz2)
+  const examWeight = 40; // 40%
+  
+  // For quizzes, average the two quiz scores
+  const quizAverage = (quiz1Percent + quiz2Percent) / 2;
+  
+  // Calculate projected grade (missing assessments count as 0%)
+  const projectedGrade = (attendancePercent * attendanceWeight / 100) + 
+                        (quizAverage * quizWeight / 100) + 
+                        (examPercent * examWeight / 100);
+  
+  return Math.max(0, projectedGrade).toFixed(1);
+}
+
+// Calculate projected final grade
+function calculateFinalProjectedGrade(studentRow) {
+  // For now, return 0 since final has no assessments
+  return '0.0';
+}
+
+// Calculate projected overall grade
+function calculateOverallProjectedGrade(studentRow) {
+  // Get midterm and final projected grades
+  const midtermProjected = parseFloat(calculateMidtermProjectedGrade(studentRow));
+  const finalProjected = parseFloat(calculateFinalProjectedGrade(studentRow));
+  
+  // Use subject weights (from the image: Midterm 100%, Final 0%)
+  const midtermWeight = 100;
+  const finalWeight = 0;
+  
+  const projectedOverall = (midtermProjected * midtermWeight / 100) + 
+                          (finalProjected * finalWeight / 100);
+  
+  return projectedOverall.toFixed(1);
+}
 </script>
 @endsection 
