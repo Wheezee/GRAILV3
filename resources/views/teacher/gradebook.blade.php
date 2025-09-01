@@ -276,10 +276,16 @@
           @php
             $assessmentCount = $assessments['midterm'][$assessmentType->id]['assessments']->count();
             $colspan = max($assessmentCount, 1);
+            $hasAssessments = $assessmentCount > 0;
+            $statusColor = $hasAssessments ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400';
+            $statusIcon = $hasAssessments ? '✓' : '⚠';
           @endphp
           <th colspan="{{ $colspan }}" class="px-4 py-2 text-center bg-blue-50 dark:bg-blue-900/20 sticky top-12 z-10 border-b border-gray-200 dark:border-gray-700">
             <div class="text-xs font-medium text-blue-900 dark:text-blue-100">{{ $assessmentType->name }}</div>
             <div class="text-xs text-blue-600 dark:text-blue-400">Weight: {{ $assessmentType->weight }}%</div>
+            <div class="status-indicator text-xs {{ $statusColor }} mt-1 flex items-center justify-center">
+              <span class="text-sm" title="{{ $hasAssessments ? 'Complete' : 'No Assessments' }}">{{ $statusIcon }}</span>
+            </div>
           </th>
         @endforeach
         
@@ -288,10 +294,16 @@
           @php
             $assessmentCount = $assessments['final'][$assessmentType->id]['assessments']->count();
             $colspan = max($assessmentCount, 1);
+            $hasAssessments = $assessmentCount > 0;
+            $statusColor = $hasAssessments ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400';
+            $statusIcon = $hasAssessments ? '✓' : '⚠';
           @endphp
           <th colspan="{{ $colspan }}" class="px-4 py-2 text-center bg-green-50 dark:bg-green-900/20 sticky top-12 z-10 border-b border-gray-200 dark:border-gray-700">
             <div class="text-xs font-medium text-green-900 dark:text-green-100">{{ $assessmentType->name }}</div>
             <div class="text-xs text-green-600 dark:text-green-400">Weight: {{ $assessmentType->weight }}%</div>
+            <div class="status-indicator text-xs {{ $statusColor }} mt-1 flex items-center justify-center">
+              <span class="text-sm" title="{{ $hasAssessments ? 'Complete' : 'No Assessments' }}">{{ $statusIcon }}</span>
+            </div>
           </th>
         @endforeach
       </tr>
@@ -436,7 +448,35 @@
           <!-- Midterm Grade -->
           <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->midterm_grade !== null)
-              <span class="grade-display text-lg text-blue-600 dark:text-blue-400" data-grade="{{ $student->midterm_grade }}" data-type="percentage">
+              @php
+                // Calculate midterm breakdown
+                $midtermBreakdown = [];
+                foreach($midtermAssessmentTypes as $type) {
+                  $assessmentList = $assessments['midterm'][$type->id]['assessments'];
+                  if($assessmentList->count() > 0) {
+                    $totalScore = 0;
+                    $totalMax = 0;
+                    foreach($assessmentList as $assessment) {
+                      $score = $student->assessmentScores()->where('assessment_id', $assessment->id)->first();
+                      if($score && $score->score !== null) {
+                        $totalScore += $score->score;
+                        $totalMax += $assessment->max_score;
+                      }
+                    }
+                    if($totalMax > 0) {
+                      $percentage = ($totalScore / $totalMax) * 100;
+                      $contribution = ($percentage * $type->weight) / 100;
+                      $midtermBreakdown[] = $type->name . ' (' . number_format($contribution, 1) . ' pts)';
+                    } else {
+                      $midtermBreakdown[] = $type->name . ' (0.0 pts)';
+                    }
+                  } else {
+                    $midtermBreakdown[] = $type->name . ' (0.0 pts)';
+                  }
+                }
+                $breakdownText = 'Midterm Breakdown: ' . implode(', ', $midtermBreakdown);
+              @endphp
+              <span class="grade-display text-lg text-blue-600 dark:text-blue-400" data-grade="{{ $student->midterm_grade }}" data-type="percentage" title="{{ $breakdownText }}">
                 {{ $student->midterm_grade }}%
               </span>
             @else
@@ -447,7 +487,35 @@
           <!-- Final Grade -->
           <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->final_grade !== null)
-              <span class="grade-display text-lg text-green-600 dark:text-green-400" data-grade="{{ $student->final_grade }}" data-type="percentage">
+              @php
+                // Calculate final breakdown
+                $finalBreakdown = [];
+                foreach($finalAssessmentTypes as $type) {
+                  $assessmentList = $assessments['final'][$type->id]['assessments'];
+                  if($assessmentList->count() > 0) {
+                    $totalScore = 0;
+                    $totalMax = 0;
+                    foreach($assessmentList as $assessment) {
+                      $score = $student->assessmentScores()->where('assessment_id', $assessment->id)->first();
+                      if($score && $score->score !== null) {
+                        $totalScore += $score->score;
+                        $totalMax += $assessment->max_score;
+                      }
+                    }
+                    if($totalMax > 0) {
+                      $percentage = ($totalScore / $totalMax) * 100;
+                      $contribution = ($percentage * $type->weight) / 100;
+                      $finalBreakdown[] = $type->name . ' (' . number_format($contribution, 1) . ' pts)';
+                    } else {
+                      $finalBreakdown[] = $type->name . ' (0.0 pts)';
+                    }
+                  } else {
+                    $finalBreakdown[] = $type->name . ' (0.0 pts)';
+                  }
+                }
+                $breakdownText = 'Final Breakdown: ' . implode(', ', $finalBreakdown);
+              @endphp
+              <span class="grade-display text-lg text-green-600 dark:text-green-400" data-grade="{{ $student->final_grade }}" data-type="percentage" title="{{ $breakdownText }}">
                 {{ $student->final_grade }}%
               </span>
             @else
@@ -458,7 +526,25 @@
           <!-- Overall Grade -->
           <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->overall_grade !== null)
-              <span class="grade-display text-lg font-bold" data-grade="{{ $student->overall_grade }}" data-type="percentage">
+              @php
+                // Calculate overall breakdown
+                $overallBreakdown = [];
+                if($student->midterm_grade !== null) {
+                  $midtermWeight = $gradingStructure ? $gradingStructure->midterm_weight : 50;
+                  $midtermContribution = ($student->midterm_grade * $midtermWeight) / 100;
+                  $overallBreakdown[] = 'Midterm (' . number_format($midtermContribution, 1) . ' pts)';
+                }
+                if($student->final_grade !== null) {
+                  $finalWeight = $gradingStructure ? $gradingStructure->final_weight : 50;
+                  $finalContribution = ($student->final_grade * $finalWeight) / 100;
+                  $overallBreakdown[] = 'Final (' . number_format($finalContribution, 1) . ' pts)';
+                }
+                if(empty($overallBreakdown)) {
+                  $overallBreakdown[] = 'No grades available';
+                }
+                $breakdownText = 'Overall Breakdown: ' . implode(', ', $overallBreakdown);
+              @endphp
+              <span class="grade-display text-lg font-bold" data-grade="{{ $student->overall_grade }}" data-type="percentage" title="{{ $breakdownText }}">
                 {{ $student->overall_grade }}%
               </span>
             @else
@@ -979,6 +1065,20 @@ document.addEventListener('DOMContentLoaded', function() {
     estimatedBtn.addEventListener('click', () => switchToEstimatedGrades());
     projectedBtn.addEventListener('click', () => switchToProjectedFinal());
   }
+  
+  // Initialize status indicators to be visible by default (Estimated Grades view)
+  const statusIndicators = document.querySelectorAll('.status-indicator');
+  statusIndicators.forEach(indicator => {
+    indicator.style.display = 'flex';
+  });
+  
+  // Store original tooltips for grade displays
+  const gradeDisplays = document.querySelectorAll('.grade-display');
+  gradeDisplays.forEach(display => {
+    if (display.title && !display.getAttribute('data-original-title')) {
+      display.setAttribute('data-original-title', display.title);
+    }
+  });
 });
 
 // Simple toggle system
@@ -989,6 +1089,13 @@ function switchToEstimatedGrades() {
   document.getElementById('estimated_grades_btn').className = 'px-3 py-2 bg-red-500 text-white text-xs sm:text-sm font-medium rounded-l-lg transition-colors';
   document.getElementById('projected_final_btn').className = 'px-3 py-2 bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-r-lg transition-colors hover:bg-gray-400';
   document.getElementById('view_summary').textContent = 'Current View: Estimated Grades';
+  
+  // Show status indicators
+  const statusIndicators = document.querySelectorAll('.status-indicator');
+  statusIndicators.forEach(indicator => {
+    indicator.style.display = 'flex';
+  });
+  
   recalculateGrades();
 }
 
@@ -997,6 +1104,13 @@ function switchToProjectedFinal() {
   document.getElementById('estimated_grades_btn').className = 'px-3 py-2 bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-l-lg transition-colors hover:bg-gray-400';
   document.getElementById('projected_final_btn').className = 'px-3 py-2 bg-red-500 text-white text-xs sm:text-sm font-medium rounded-r-lg transition-colors';
   document.getElementById('view_summary').textContent = 'Current View: Projected Final';
+  
+  // Hide status indicators
+  const statusIndicators = document.querySelectorAll('.status-indicator');
+  statusIndicators.forEach(indicator => {
+    indicator.style.display = 'none';
+  });
+  
   recalculateGrades();
 }
 
@@ -1010,13 +1124,15 @@ function recalculateGrades() {
         // Show original grades
         display.textContent = originalGrade + '%';
         display.style.color = '';
-        display.title = 'Estimated Grade (based on available assessments)';
+        // Keep the original breakdown tooltip
+        const originalTitle = display.getAttribute('data-original-title') || display.title;
+        display.title = originalTitle;
       } else {
         // Show projected grades with accurate calculation
         const projectedGrade = calculateAccurateProjectedGrade(display);
         display.textContent = projectedGrade + '%';
         display.style.color = '#dc2626';
-        display.title = 'Projected Final Grade (all weights included)';
+        display.title = 'Projected Final Grade (all weights included) - Hover for breakdown';
       }
     }
   });

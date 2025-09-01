@@ -17,6 +17,7 @@ class GradebookExportController extends Controller
         $format = $request->input('format');
         $gradingMode = $request->input('grading_mode', 'percentage');
         $gradingSettings = json_decode($request->input('grading_settings', '{}'), true);
+        $exportView = $request->input('export_view', 'estimated'); // 'estimated' or 'projected'
         
         $subject = auth()->user()->subjects()->findOrFail($subjectId);
         $classSection = ClassSection::where('id', $classSectionId)
@@ -91,16 +92,37 @@ class GradebookExportController extends Controller
                 if (!empty($midtermGrades)) {
                     $weightedSum = 0;
                     
-                    foreach ($midtermGrades as $typeId => $typeGrades) {
-                        if (!empty($typeGrades)) {
-                            $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                    if ($exportView === 'projected') {
+                        // Projected view: Include ALL weights, missing assessments count as 0%
+                        $totalWeight = 0;
+                        foreach ($midtermAssessmentTypes as $assessmentType) {
+                            $totalWeight += $assessmentType->weight;
+                        }
+                        
+                        foreach ($midtermGrades as $typeId => $typeGrades) {
+                            if (!empty($typeGrades)) {
+                                $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                            } else {
+                                $averageGrade = 0; // No assessments = 0%
+                            }
                             $weightedSum += ($averageGrade * $midtermWeights[$typeId]);
                         }
-                    }
-                    
-                    if ($availableWeight > 0) {
-                        // Midterm grade = weighted sum ÷ sum of active weights (no scaling needed)
-                        $student->midterm_grade = round($weightedSum / $availableWeight, 1);
+                        
+                        if ($totalWeight > 0) {
+                            $student->midterm_grade = round($weightedSum / $totalWeight, 1);
+                        }
+                    } else {
+                        // Estimated view: Only include weights of assessment types with assessments
+                        foreach ($midtermGrades as $typeId => $typeGrades) {
+                            if (!empty($typeGrades)) {
+                                $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                                $weightedSum += ($averageGrade * $midtermWeights[$typeId]);
+                            }
+                        }
+                        
+                        if ($availableWeight > 0) {
+                            $student->midterm_grade = round($weightedSum / $availableWeight, 1);
+                        }
                     }
                 }
             }
@@ -144,16 +166,37 @@ class GradebookExportController extends Controller
                 if (!empty($finalGrades)) {
                     $weightedSum = 0;
                     
-                    foreach ($finalGrades as $typeId => $typeGrades) {
-                        if (!empty($typeGrades)) {
-                            $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                    if ($exportView === 'projected') {
+                        // Projected view: Include ALL weights, missing assessments count as 0%
+                        $totalWeight = 0;
+                        foreach ($finalAssessmentTypes as $assessmentType) {
+                            $totalWeight += $assessmentType->weight;
+                        }
+                        
+                        foreach ($finalGrades as $typeId => $typeGrades) {
+                            if (!empty($typeGrades)) {
+                                $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                            } else {
+                                $averageGrade = 0; // No assessments = 0%
+                            }
                             $weightedSum += ($averageGrade * $finalWeights[$typeId]);
                         }
-                    }
-                    
-                    if ($availableWeight > 0) {
-                        // Final grade = weighted sum ÷ sum of active weights (no scaling needed)
-                        $student->final_grade = round($weightedSum / $availableWeight, 1);
+                        
+                        if ($totalWeight > 0) {
+                            $student->final_grade = round($weightedSum / $totalWeight, 1);
+                        }
+                    } else {
+                        // Estimated view: Only include weights of assessment types with assessments
+                        foreach ($finalGrades as $typeId => $typeGrades) {
+                            if (!empty($typeGrades)) {
+                                $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                                $weightedSum += ($averageGrade * $finalWeights[$typeId]);
+                            }
+                        }
+                        
+                        if ($availableWeight > 0) {
+                            $student->final_grade = round($weightedSum / $availableWeight, 1);
+                        }
                     }
                 }
             }
@@ -185,19 +228,33 @@ class GradebookExportController extends Controller
                 'finalAssessmentTypes',
                 'students',
                 'assessments',
-                'gradingMode'
+                'gradingMode',
+                'exportView'
             ));
             
             // Set paper size to A4 landscape
             $pdf->setPaper('A4', 'landscape');
             
-            return $pdf->download('gradebook.pdf');
+            $filename = 'gradebook_' . $exportView . '.pdf';
+            return $pdf->download($filename);
         }
 
         if ($format === 'excel') {
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
+            // Add export view and grading mode info
+            $currentRow = 1;
+            $rowOffset = 0;
+            
+            // Add export view info
+            $viewText = $exportView === 'projected' ? 'Projected Final Grades' : 'Estimated Grades';
+            $sheet->setCellValue('A' . $currentRow, 'Export View: ' . $viewText);
+            $sheet->mergeCells('A' . $currentRow . ':D' . $currentRow);
+            $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true);
+            $currentRow++;
+            $rowOffset++;
+            
             // Add grading mode info
             if ($gradingMode !== 'percentage') {
                 $gradingModeText = match($gradingMode) {
@@ -205,14 +262,11 @@ class GradebookExportController extends Controller
                     'custom' => 'Custom Grading',
                     default => ucfirst($gradingMode)
                 };
-                $sheet->setCellValue('A1', 'Grading Mode: ' . $gradingModeText);
-                $sheet->mergeCells('A1:D1');
-                $sheet->getStyle('A1')->getFont()->setBold(true);
-                
-                // Adjust row offset for the rest of the content
-                $rowOffset = 2;
-            } else {
-                $rowOffset = 0;
+                $sheet->setCellValue('A' . $currentRow, 'Grading Mode: ' . $gradingModeText);
+                $sheet->mergeCells('A' . $currentRow . ':D' . $currentRow);
+                $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true);
+                $currentRow++;
+                $rowOffset++;
             }
 
             // Build header rows (3 rows, like the PDF)
@@ -337,7 +391,7 @@ class GradebookExportController extends Controller
             }
 
             // Output
-            $filename = 'gradebook.xlsx';
+            $filename = 'gradebook_' . $exportView . '.xlsx';
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             $writer = new Xlsx($spreadsheet);
