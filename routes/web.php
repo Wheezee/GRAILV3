@@ -1027,7 +1027,355 @@ Route::get('/api/generate-qr', function (Illuminate\Http\Request $request) {
 });
 
 Route::get('/subjects/{subject}/classes/{classSection}/analytics/{term}', [\App\Http\Controllers\StudentController::class, 'getAnalytics'])->name('class.analytics');
-Route::get('/subjects/{subject}/classes/{classSection}/class-analytics/{term}', [\App\Http\Controllers\StudentController::class, 'showClassAnalytics'])->name('class.analytics.page');
+Route::get('/subjects/{subject}/classes/{classSection}/class-analytics/{term}', function ($subjectId, $classSectionId, $term) {
+    if (!auth()->user()->isTeacher()) {
+        abort(403, 'Access denied. Teachers only.');
+    }
+    
+    $subject = auth()->user()->subjects()->findOrFail($subjectId);
+    $classSection = \App\Models\ClassSection::where('id', $classSectionId)
+        ->where('subject_id', $subject->id)
+        ->where('teacher_id', auth()->id())
+        ->firstOrFail();
+    
+    // Get grading structure (weights for midterm and final)
+    $gradingStructure = $subject->gradingStructure;
+    
+    // Fetch all assessment types for both terms
+    $midtermAssessmentTypes = $subject->assessmentTypes()->where('term', 'midterm')->orderBy('order')->get();
+    $finalAssessmentTypes = $subject->assessmentTypes()->where('term', 'final')->orderBy('order')->get();
+    
+    // Fetch assessments for both terms
+    $assessments = [
+        'midterm' => [],
+        'final' => []
+    ];
+    
+    foreach ($midtermAssessmentTypes as $assessmentType) {
+        $assessments['midterm'][$assessmentType->id] = [
+            'type' => $assessmentType,
+            'assessments' => $assessmentType->assessments()->where('term', 'midterm')->orderBy('order')->get()
+        ];
+    }
+    
+    foreach ($finalAssessmentTypes as $assessmentType) {
+        $assessments['final'][$assessmentType->id] = [
+            'type' => $assessmentType,
+            'assessments' => $assessmentType->assessments()->where('term', 'final')->orderBy('order')->get()
+        ];
+    }
+    
+    // Fetch students
+    $students = $classSection->students()->orderBy('last_name')->orderBy('first_name')->get();
+    
+    // Calculate grades for each student using gradebook logic
+    foreach ($students as $student) {
+        $student->midterm_grade = null;
+        $student->final_grade = null;
+        $student->overall_grade = null;
+        
+        // Calculate midterm grade
+        if ($midtermAssessmentTypes->count() > 0) {
+            $midtermGrades = [];
+            $midtermWeights = [];
+            $availableWeight = 0;
+            
+            foreach ($midtermAssessmentTypes as $assessmentType) {
+                // Get all assessments for this type, regardless of whether student has scores
+                $allAssessments = $assessmentType->assessments;
+                
+                if ($allAssessments->count() > 0) {
+                    $assessmentScores = $student->assessmentScores()
+                        ->whereHas('assessment', function($query) use ($assessmentType) {
+                            $query->where('assessment_type_id', $assessmentType->id);
+                        })
+                        ->with('assessment')
+                        ->get();
+                    
+                    $typeGrades = [];
+                    
+                    foreach ($allAssessments as $assessment) {
+                        $score = $assessmentScores->where('assessment_id', $assessment->id)->first();
+                        if ($score && $score->score !== null) {
+                            $typeGrades[] = ($score->score / $assessment->max_score) * 100;
+                        } else {
+                            $typeGrades[] = 0; // missing counts as 0%
+                        }
+                    }
+                    
+                    $midtermGrades[$assessmentType->id] = $typeGrades;
+                    $midtermWeights[$assessmentType->id] = $assessmentType->weight;
+                    $availableWeight += $assessmentType->weight;
+                }
+            }
+            
+            // Compute weighted average for midterm
+            if (!empty($midtermGrades)) {
+                $weightedSum = 0;
+                
+                foreach ($midtermGrades as $typeId => $typeGrades) {
+                    if (!empty($typeGrades)) {
+                        $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                        $weightedSum += ($averageGrade * $midtermWeights[$typeId]);
+                    }
+                }
+                
+                if ($availableWeight > 0) {
+                    // Midterm grade = weighted sum ÷ sum of active weights (no scaling needed)
+                    $student->midterm_grade = round($weightedSum / $availableWeight, 1);
+                }
+            }
+        }
+        
+        // Calculate final grade
+        if ($finalAssessmentTypes->count() > 0) {
+            $finalGrades = [];
+            $finalWeights = [];
+            $availableWeight = 0;
+            
+            foreach ($finalAssessmentTypes as $assessmentType) {
+                // Get all assessments for this type, regardless of whether student has scores
+                $allAssessments = $assessmentType->assessments;
+                
+                if ($allAssessments->count() > 0) {
+                    $assessmentScores = $student->assessmentScores()
+                        ->whereHas('assessment', function($query) use ($assessmentType) {
+                            $query->where('assessment_type_id', $assessmentType->id);
+                        })
+                        ->with('assessment')
+                        ->get();
+                    
+                    $typeGrades = [];
+                    
+                    foreach ($allAssessments as $assessment) {
+                        $score = $assessmentScores->where('assessment_id', $assessment->id)->first();
+                        if ($score && $score->score !== null) {
+                            $typeGrades[] = ($score->score / $assessment->max_score) * 100;
+                        } else {
+                            $typeGrades[] = 0; // missing counts as 0%
+                        }
+                    }
+                    
+                    $finalGrades[$assessmentType->id] = $typeGrades;
+                    $finalWeights[$assessmentType->id] = $assessmentType->weight;
+                    $availableWeight += $assessmentType->weight;
+                }
+            }
+            
+            // Compute weighted average for final
+            if (!empty($finalGrades)) {
+                $weightedSum = 0;
+                
+                foreach ($finalGrades as $typeId => $typeGrades) {
+                    if (!empty($typeGrades)) {
+                        $averageGrade = array_sum($typeGrades) / count($typeGrades);
+                        $weightedSum += ($averageGrade * $finalWeights[$typeId]);
+                    }
+                }
+                
+                if ($availableWeight > 0) {
+                    // Final grade = weighted sum ÷ sum of active weights (no scaling needed)
+                    $student->final_grade = round($weightedSum / $availableWeight, 1);
+                }
+            }
+        }
+        
+        // Calculate overall grade using simple formula: midterm weight × midterm grade + final weight × final grade
+        $midtermWeight = $gradingStructure ? ($gradingStructure->midterm_weight / 100) : 0.5;
+        $finalWeight = $gradingStructure ? ($gradingStructure->final_weight / 100) : 0.5;
+        
+        // Use 0 if grade is null, otherwise use the actual grade
+        $midtermGrade = $student->midterm_grade ?? 0;
+        $finalGrade = $student->final_grade ?? 0;
+        
+        $student->overall_grade = round(
+            ($midtermGrade * $midtermWeight) + 
+            ($finalGrade * $finalWeight), 
+            1
+        );
+        
+        // Calculate estimated grade (inflated version) - simpler calculation that inflates scores
+        $estimatedMidtermGrade = $student->midterm_grade ?? 0;
+        $estimatedFinalGrade = $student->final_grade ?? 0;
+        
+        // Simple average of midterm and final (inflates the grade by not using weights)
+        if ($estimatedMidtermGrade > 0 && $estimatedFinalGrade > 0) {
+            $student->estimated_grade = round(($estimatedMidtermGrade + $estimatedFinalGrade) / 2, 1);
+        } elseif ($estimatedMidtermGrade > 0) {
+            $student->estimated_grade = $estimatedMidtermGrade;
+        } elseif ($estimatedFinalGrade > 0) {
+            $student->estimated_grade = $estimatedFinalGrade;
+        } else {
+            $student->estimated_grade = 0;
+        }
+        
+        // Debug: Log both grade calculations
+        error_log("Grade calculations for {$student->first_name} {$student->last_name}: Final={$student->overall_grade}, Estimated={$student->estimated_grade}");
+    }
+    
+    // Get assessment types for the specific term (for display purposes)
+    $assessmentTypes = $subject->assessmentTypes()->where('term', $term)->with(['assessments' => function($query) use ($term) {
+        $query->where('term', $term);
+    }, 'assessments.scores'])->orderBy('order')->get();
+    
+    // Create analytics data structure
+    $analytics = [
+        'student_rankings' => [],
+        'grade_distribution' => [],
+        'assessment_difficulty' => [],
+        'performance_trends' => [],
+        'risk_distribution' => [],
+        'class_stats' => [],
+        'student_metrics' => [],
+        'student_assessment_scores' => [],
+        'student_type_averages' => []
+    ];
+    
+            // Calculate student rankings using accurate final grades from gradebook system
+        $studentRankings = [];
+        foreach ($students as $student) {
+            // Use the accurate final grade (with proper weighting) for rankings
+            $estimatedGrade = $student->overall_grade ?? 0;
+        
+        // Calculate real student metrics using StudentMetricsService
+        $studentMetricsService = new \App\Services\StudentMetricsService();
+        $realMetrics = $studentMetricsService->calculateStudentMetrics($student->id, $classSection->id, $term);
+        
+        $analytics['student_metrics'][$student->id] = [
+            'avg_score_pct' => $estimatedGrade,
+            'variation_score_pct' => $realMetrics['variation_score_pct'] ?? 0,
+            'late_submission_pct' => $realMetrics['late_submission_pct'] ?? 0,
+            'missed_submission_pct' => $realMetrics['missed_submission_pct'] ?? 0
+        ];
+        
+        // Calculate real attendance percentage from attendance records
+        $attendancePercentage = 0;
+        $attendanceAssessments = $subject->assessmentTypes()
+            ->where('name', 'Attendance')
+            ->where('term', $term)
+            ->with('assessments')
+            ->get()
+            ->flatMap(function($type) {
+                return $type->assessments;
+            });
+            
+        if ($attendanceAssessments->count() > 0) {
+            $totalAttendanceDays = 0;
+            $presentDays = 0;
+            
+            foreach ($attendanceAssessments as $assessment) {
+                $attendanceRecords = $assessment->attendanceRecords()
+                    ->where('student_id', $student->id)
+                    ->get();
+                    
+                foreach ($attendanceRecords as $record) {
+                    $totalAttendanceDays++;
+                    if ($record->isPresent()) {
+                        $presentDays++;
+                    }
+                }
+            }
+            
+            if ($totalAttendanceDays > 0) {
+                $attendancePercentage = round(($presentDays / $totalAttendanceDays) * 100, 1);
+            }
+        }
+        
+        // Build dynamic assessment averages for this term (exclude Attendance)
+        $analytics['student_assessment_scores'][$student->id] = [
+            'Attendance' => $attendancePercentage
+        ];
+
+        $termTypes = $subject->assessmentTypes()
+            ->where('term', $term)
+            ->with('assessments')
+            ->orderBy('order')
+            ->get();
+
+        $dynamicTypeAverages = [];
+        foreach ($termTypes as $assessmentType) {
+            if (strtolower($assessmentType->name) === 'attendance') {
+                continue;
+            }
+            $scorePercents = [];
+            foreach ($assessmentType->assessments as $assessment) {
+                $score = $assessment->scores()->where('student_id', $student->id)->first();
+                if ($score && $score->score !== null && $assessment->max_score > 0) {
+                    $scorePercents[] = ($score->score / $assessment->max_score) * 100;
+                }
+            }
+            if (count($scorePercents) > 0) {
+                $avg = round(array_sum($scorePercents) / count($scorePercents), 1);
+                $analytics['student_assessment_scores'][$student->id][$assessmentType->name] = $avg;
+                $dynamicTypeAverages[$assessmentType->name] = $avg;
+            }
+        }
+
+        // Store dynamic type averages
+        $analytics['student_type_averages'][$student->id] = $dynamicTypeAverages;
+        
+        // Debug: Log real data being fetched
+        $latePct = isset($realMetrics['late_submission_pct']) ? $realMetrics['late_submission_pct'] : 0;
+        $missedPct = isset($realMetrics['missed_submission_pct']) ? $realMetrics['missed_submission_pct'] : 0;
+        $typeLogParts = [];
+        foreach ($analytics['student_type_averages'][$student->id] as $tName => $tAvg) {
+            $typeLogParts[] = $tName . '=' . $tAvg . '%';
+        }
+        $typeLog = implode(', ', $typeLogParts);
+        error_log("Real data for {$student->first_name} {$student->last_name}: Attendance={$attendancePercentage}%, {$typeLog}, Late={$latePct}%, Missed={$missedPct}%");
+        
+        $studentRankings[] = [
+            'student' => $student,
+            'estimated_grade' => $estimatedGrade,
+            'midterm_grade' => $student->midterm_grade,
+                            'final_grade' => $student->final_grade, // This is the actual final grade
+            'risk_level' => $estimatedGrade >= 80 ? 'Low' : ($estimatedGrade >= 70 ? 'Medium' : 'High'),
+            'risk_score' => $estimatedGrade
+        ];
+    }
+    
+    // Sort by estimated grade (descending) and assign ranks
+    usort($studentRankings, function($a, $b) {
+        return $b['estimated_grade'] <=> $a['estimated_grade'];
+    });
+    
+    // Calculate gaps from the student above them
+    foreach ($studentRankings as $index => &$ranking) {
+        $ranking['rank'] = $index + 1;
+        
+        if ($index === 0) {
+            // #1 student has no gap
+            $ranking['gap'] = 0;
+        } else {
+            // Calculate gap from the student above them (negative because they need to gain this amount)
+            $previousStudentGrade = $studentRankings[$index - 1]['estimated_grade'];
+            $ranking['gap'] = -($previousStudentGrade - $ranking['estimated_grade']);
+        }
+    }
+    
+    $analytics['student_rankings'] = $studentRankings;
+    
+    // Calculate grade distribution using estimated grades
+    $grades = array_column($studentRankings, 'estimated_grade');
+    $analytics['grade_distribution'] = [
+        'excellent' => count(array_filter($grades, fn($g) => $g >= 90)),
+        'good' => count(array_filter($grades, fn($g) => $g >= 80 && $g < 90)),
+        'satisfactory' => count(array_filter($grades, fn($g) => $g >= 70 && $g < 80)),
+        'needs_improvement' => count(array_filter($grades, fn($g) => $g >= 60 && $g < 70)),
+        'failing' => count(array_filter($grades, fn($g) => $g < 60))
+    ];
+    
+    // Calculate class statistics using estimated grades
+    $analytics['class_stats'] = [
+        'total_students' => count($students),
+        'average_grade' => count($grades) > 0 ? array_sum($grades) / count($grades) : 0,
+        'highest_grade' => count($grades) > 0 ? max($grades) : 0,
+        'lowest_grade' => count($grades) > 0 ? min($grades) : 0,
+        'passing_rate' => count(array_filter($grades, fn($g) => $g >= 70)) / count($grades) * 100
+    ];
+    
+    return view('teacher.class-analytics', compact('students', 'subject', 'classSection', 'assessmentTypes', 'term', 'analytics'));
+})->name('class.analytics.page')->middleware('auth');
 
 // Annotation Routes
 Route::prefix('api/annotations')->middleware('auth')->group(function () {

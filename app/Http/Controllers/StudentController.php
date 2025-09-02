@@ -35,7 +35,7 @@ class StudentController extends Controller
         }, 'assessments.scores'])->orderBy('order')->get();
         
         // Calculate comprehensive class analytics
-        $analytics = $this->calculateClassAnalytics($students, $assessmentTypes, $term, $classSection);
+        $analytics = $this->calculateClassAnalytics($students, $assessmentTypes, $term, $classSection, $subject);
         
         return view('teacher.class-analytics', compact('students', 'subject', 'classSection', 'assessmentTypes', 'term', 'analytics'));
     }
@@ -104,7 +104,7 @@ class StudentController extends Controller
         ]);
     }
     
-    private function calculateClassAnalytics($students, $assessmentTypes, $term, $classSection)
+    private function calculateClassAnalytics($students, $assessmentTypes, $term, $classSection, $subject)
     {
         $analytics = [
             'student_rankings' => [],

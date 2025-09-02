@@ -41,6 +41,27 @@
         <p class="text-gray-600 dark:text-gray-400">{{ $subject->code }} - {{ $subject->title }} ({{ ucfirst($term) }} Term)</p>
     </div>
 
+    <!-- ML Action Button -->
+    <div class="mb-8">
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg p-6 border border-purple-200 dark:border-purple-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <i data-lucide="brain" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white mb-1">Machine Learning Insights</h3>
+                        <p class="text-purple-100">Get AI-powered predictions and analysis for your class</p>
+                    </div>
+                </div>
+                <button type="button" class="bg-white text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2" onclick="startMLAnalysis()">
+                    <i data-lucide="play" class="w-5 h-5"></i>
+                    <span>Start ML Analysis</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Class Stats Overview -->
     <div class="mb-8">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -122,7 +143,7 @@
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Rank</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
-                            <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Current Grade</th>
+                            <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estimated Grade</th>
                                                                                       <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gap</th>
                              <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Risk Level</th>
                              <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Performance</th>
@@ -132,23 +153,23 @@
                         @foreach($analytics['student_rankings'] as $index => $ranking)
                                                  @php
                              $student = $ranking['student'];
-                             $currentGrade = $ranking['current_grade'];
+                             $estimatedGrade = $ranking['estimated_grade'];
                              $gap = $ranking['gap'];
                              $riskLevel = $ranking['risk_level'];
                              $riskScore = $ranking['risk_score'];
                              $rank = $index + 1;
                             
                             // Performance tier colors
-                            $tierColor = $currentGrade >= 90 ? 'text-green-600 bg-green-100 dark:bg-green-900/20' :
-                                        ($currentGrade >= 80 ? 'text-blue-600 bg-blue-100 dark:bg-blue-900/20' :
-                                        ($currentGrade >= 70 ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20' :
-                                        ($currentGrade >= 60 ? 'text-orange-600 bg-orange-100 dark:bg-orange-900/20' :
+                            $tierColor = $estimatedGrade >= 90 ? 'text-green-600 bg-green-100 dark:bg-green-900/20' :
+                                        ($estimatedGrade >= 80 ? 'text-blue-600 bg-blue-100 dark:bg-blue-900/20' :
+                                        ($estimatedGrade >= 70 ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20' :
+                                        ($estimatedGrade >= 60 ? 'text-orange-600 bg-orange-100 dark:bg-orange-900/20' :
                                         'text-red-600 bg-red-100 dark:bg-red-900/20')));
                             
-                            $tierLabel = $currentGrade >= 90 ? 'Excellent' :
-                                        ($currentGrade >= 80 ? 'Good' :
-                                        ($currentGrade >= 70 ? 'Satisfactory' :
-                                        ($currentGrade >= 60 ? 'Needs Improvement' : 'Failing')));
+                            $tierLabel = $estimatedGrade >= 90 ? 'Excellent' :
+                                        ($estimatedGrade >= 80 ? 'Good' :
+                                        ($estimatedGrade >= 70 ? 'Satisfactory' :
+                                        ($estimatedGrade >= 60 ? 'Needs Improvement' : 'Failing')));
                         @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-student-id="{{ $student->id }}">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -185,8 +206,8 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <div class="text-2xl font-bold {{ $currentGrade >= 90 ? 'text-green-600' : ($currentGrade >= 80 ? 'text-blue-600' : ($currentGrade >= 70 ? 'text-yellow-600' : ($currentGrade >= 60 ? 'text-orange-600' : 'text-red-600'))) }}">
-                                    {{ number_format($currentGrade, 1) }}%
+                                <div class="text-2xl font-bold {{ $estimatedGrade >= 90 ? 'text-green-600' : ($estimatedGrade >= 80 ? 'text-blue-600' : ($estimatedGrade >= 70 ? 'text-yellow-600' : ($estimatedGrade >= 60 ? 'text-orange-600' : 'text-red-600'))) }}">
+                                    {{ number_format($estimatedGrade, 1) }}%
                                 </div>
                             </td>
                                                          <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -288,7 +309,7 @@
                 <div class="flex flex-col justify-between h-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Regression Analysis</h3>
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">Model and predict outcomes based on student performance data</p>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Model and predict outcomes based on student performance data. Analyze how attendance, participation, or assessment scores relate to final grades.</p>
                     </div>
                     <button onclick="openRegressionModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors mt-2">
                         <i data-lucide="trending-up" class="w-4 h-4"></i>
@@ -554,7 +575,7 @@
               <option value="average_score">Average Score (%)</option>
               <option value="missed_submission_pct">Missed Submissions (%)</option>
             </optgroup>
-            <optgroup label="Assessment Scores">
+            <optgroup label="Assessment Percentages">
               <option value="attendance">Attendance (%)</option>
               <option value="quiz1">Quiz 1 (%)</option>
               <option value="quiz2">Quiz 2 (%)</option>
@@ -582,7 +603,7 @@
               <option value="average_score">Average Score (%)</option>
               <option value="missed_submission_pct">Missed Submissions (%)</option>
             </optgroup>
-            <optgroup label="Assessment Scores">
+            <optgroup label="Assessment Percentages">
               <option value="attendance">Attendance (%)</option>
               <option value="quiz1">Quiz 1 (%)</option>
               <option value="quiz2">Quiz 2 (%)</option>
@@ -718,6 +739,14 @@
     <!-- Modal Body -->
     <div class="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
       <!-- Variable Selection -->
+      <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <p class="text-sm text-blue-800 dark:text-blue-200">
+          <strong>💡 Regression Examples:</strong><br>
+          • <strong>Attendance → Estimated Grade:</strong> How much does attendance affect final grades?<br>
+          • <strong>Quiz Average → Exam Average:</strong> Do good quiz scores predict good exam scores?<br>
+          • <strong>Late Submissions → Estimated Grade:</strong> How do late submissions impact performance?
+        </p>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Variable X</label>
@@ -727,23 +756,13 @@
               <option value="sex">Gender (Categorical)</option>
             </optgroup>
             <optgroup label="Performance Metrics">
-              <option value="current_grade">Current Grade (%)</option>
+              <option value="estimated_grade">Estimated Grade (%)</option>
               <option value="average_score">Average Score (%)</option>
+              <option value="variation_score_pct">Score Variation (%)</option>
+              <option value="late_submission_pct">Late Submissions (%)</option>
               <option value="missed_submission_pct">Missed Submissions (%)</option>
             </optgroup>
-            <optgroup label="Assessment Scores">
-              <option value="attendance">Attendance (%)</option>
-              <option value="quiz1">Quiz 1 (%)</option>
-              <option value="quiz2">Quiz 2 (%)</option>
-              <option value="quiz3">Quiz 3 (%)</option>
-              <option value="midterm">Midterm (%)</option>
-              <option value="final">Final (%)</option>
-            </optgroup>
-            <optgroup label="Assessment Averages">
-              <option value="quiz_avg">Quiz Average (%)</option>
-              <option value="midterm_avg">Midterm Average (%)</option>
-              <option value="final_avg">Final Average (%)</option>
-            </optgroup>
+            <!-- Dynamic groups will be injected by buildRegressionVariableOptions() -->
           </select>
         </div>
         <div>
@@ -754,23 +773,13 @@
               <option value="sex">Gender (Categorical)</option>
             </optgroup>
             <optgroup label="Performance Metrics">
-              <option value="current_grade">Current Grade (%)</option>
+              <option value="estimated_grade">Estimated Grade (%)</option>
               <option value="average_score">Average Score (%)</option>
+              <option value="variation_score_pct">Score Variation (%)</option>
+              <option value="late_submission_pct">Late Submissions (%)</option>
               <option value="missed_submission_pct">Missed Submissions (%)</option>
             </optgroup>
-            <optgroup label="Assessment Scores">
-              <option value="attendance">Attendance (%)</option>
-              <option value="quiz1">Quiz 1 (%)</option>
-              <option value="quiz2">Quiz 2 (%)</option>
-              <option value="quiz3">Quiz 3 (%)</option>
-              <option value="midterm">Midterm (%)</option>
-              <option value="final">Final (%)</option>
-            </optgroup>
-            <optgroup label="Assessment Averages">
-              <option value="quiz_avg">Quiz Average (%)</option>
-              <option value="midterm_avg">Midterm Average (%)</option>
-              <option value="final_avg">Final Average (%)</option>
-            </optgroup>
+            <!-- Dynamic groups will be injected by buildRegressionVariableOptions() -->
           </select>
         </div>
       </div>
@@ -791,8 +800,16 @@
               <p id="regressionEquation" class="text-lg font-bold text-green-600"></p>
             </div>
             <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">R² Value</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">R² Value (Explained Variance)</p>
               <p id="regressionR2" class="text-lg font-semibold"></p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Correlation (r)</p>
+              <p id="regressionCorrelation" class="text-lg font-semibold"></p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Strength</p>
+              <p id="regressionStrength" class="text-lg font-semibold"></p>
             </div>
           </div>
         </div>
@@ -801,6 +818,17 @@
           <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-3">Data Visualization</h4>
           <div class="h-64">
             <canvas id="regressionScatterPlot"></canvas>
+          </div>
+        </div>
+        
+        <!-- Interpretation Guide -->
+        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <h4 class="font-semibold text-blue-900 dark:text-blue-100 mb-2">📊 How to Interpret Results</h4>
+          <div class="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+            <p><strong>R² Value:</strong> Shows how much of the variation in Y is explained by X. Higher values (closer to 1.0) indicate stronger relationships.</p>
+            <p><strong>Correlation (r):</strong> Direction and strength of the relationship. Positive values mean as X increases, Y increases. Negative values mean as X increases, Y decreases.</p>
+            <p><strong>Strength:</strong> Based on correlation magnitude: Very Strong (≥0.8), Strong (≥0.6), Moderate (≥0.4), Weak (≥0.2), Very Weak (<0.2).</p>
+            <p><strong>Equation:</strong> Y = mX + b where m is the slope (change in Y per unit change in X) and b is the intercept.</p>
           </div>
         </div>
       </div>
@@ -1336,10 +1364,37 @@ function createRiskHistogram() {
   });
 }
 
-// Load ML risks when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  loadMLRisks();
-});
+// Load ML risks when page loads - DISABLED
+// document.addEventListener('DOMContentLoaded', function() {
+//   loadMLRisks();
+// });
+
+// Start ML Analysis function
+function startMLAnalysis() {
+    // Show loading state in the ML button
+    const mlButton = document.querySelector('button[onclick="startMLAnalysis()"]');
+    const originalContent = mlButton.innerHTML;
+    mlButton.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>Running ML...</span>';
+    mlButton.disabled = true;
+    
+    // Start the ML analysis
+    loadMLRisks();
+    
+    // Update the risk histogram message
+    const riskHistogramLoading = document.getElementById('riskHistogramLoading');
+    if (riskHistogramLoading) {
+        riskHistogramLoading.innerHTML = `
+            <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-purple-500 mx-auto mb-2"></i>
+            <p class="text-gray-600 dark:text-gray-400">Running ML analysis...</p>
+        `;
+    }
+    
+    // Re-enable button after a delay (ML will handle its own completion)
+    setTimeout(() => {
+        mlButton.innerHTML = originalContent;
+        mlButton.disabled = false;
+    }, 2000);
+}
 
 // Correlation Analysis Functions
 let scatterChart = null;
@@ -1408,16 +1463,29 @@ function calculateCorrelation() {
     // Extract X variable value
     if (variableX === 'sex') {
       if (ranking.student.gender) {
-        xValue = {
-          categorical: ranking.student.gender.toLowerCase(), // 'male' or 'female'
-          binary: ranking.student.gender.toLowerCase() === 'male' ? 1 : 0 // 1 for male, 0 for female
-        };
+        const gender = ranking.student.gender.toLowerCase();
+        // Normalize gender values (handle 'm', 'f', 'male', 'female', etc.)
+        let normalizedGender = null;
+        if (gender === 'male' || gender === 'm') {
+          normalizedGender = 'male';
+        } else if (gender === 'female' || gender === 'f') {
+          normalizedGender = 'female';
+        }
+        
+        if (normalizedGender) {
+          xValue = {
+            categorical: normalizedGender,
+            binary: normalizedGender === 'male' ? 1 : 0 // 1 for male, 0 for female
+          };
+        } else {
+          xValue = null; // Skip this student if gender is not recognized
+        }
       } else {
         xValue = null; // Skip this student
       }
     } else {
       switch(variableX) {
-        case 'current_grade': xValue = ranking.current_grade; break;
+        case 'estimated_grade': xValue = ranking.estimated_grade; break;
         case 'average_score': xValue = metrics.avg_score_pct || 0; break;
         case 'missed_submission_pct': xValue = metrics.missed_submission_pct || 0; break;
         case 'quiz1': xValue = studentAssessmentScores[studentId]?.['Quiz 1'] || null; break;
@@ -1435,16 +1503,29 @@ function calculateCorrelation() {
     // Extract Y variable value
     if (variableY === 'sex') {
       if (ranking.student.gender) {
-        yValue = {
-          categorical: ranking.student.gender.toLowerCase(), // 'male' or 'female'
-          binary: ranking.student.gender.toLowerCase() === 'male' ? 1 : 0 // 1 for male, 0 for female
-        };
+        const gender = ranking.student.gender.toLowerCase();
+        // Normalize gender values (handle 'm', 'f', 'male', 'female', etc.)
+        let normalizedGender = null;
+        if (gender === 'male' || gender === 'm') {
+          normalizedGender = 'male';
+        } else if (gender === 'female' || gender === 'f') {
+          normalizedGender = 'female';
+        }
+        
+        if (normalizedGender) {
+          yValue = {
+            categorical: normalizedGender,
+            binary: normalizedGender === 'male' ? 1 : 0 // 1 for male, 0 for female
+          };
+        } else {
+          yValue = null; // Skip this student if gender is not recognized
+        }
       } else {
         yValue = null; // Skip this student
       }
     } else {
       switch(variableY) {
-        case 'current_grade': yValue = ranking.current_grade; break;
+        case 'estimated_grade': yValue = ranking.estimated_grade; break;
         case 'average_score': yValue = metrics.avg_score_pct || 0; break;
         case 'missed_submission_pct': yValue = metrics.missed_submission_pct || 0; break;
         case 'quiz1': yValue = studentAssessmentScores[studentId]?.['Quiz 1'] || null; break;
@@ -2199,6 +2280,7 @@ let regressionChart = null;
 function openRegressionModal() {
   document.getElementById('regressionModal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  buildRegressionVariableOptions();
 }
 
 function closeRegressionModal() {
@@ -2248,54 +2330,82 @@ function runRegression() {
     // Extract X variable value
     if (xVar === 'sex') {
       if (ranking.student.gender) {
-        xValue = {
-          categorical: ranking.student.gender.toLowerCase(), // 'male' or 'female'
-          binary: ranking.student.gender.toLowerCase() === 'male' ? 1 : 0 // 1 for male, 0 for female
-        };
+        const gender = ranking.student.gender.toLowerCase();
+        // Normalize gender values (handle 'm', 'f', 'male', 'female', etc.)
+        let normalizedGender = null;
+        if (gender === 'male' || gender === 'm') {
+          normalizedGender = 'male';
+        } else if (gender === 'female' || gender === 'f') {
+          normalizedGender = 'female';
+        }
+        
+        if (normalizedGender) {
+          xValue = {
+            categorical: normalizedGender,
+            binary: normalizedGender === 'male' ? 1 : 0 // 1 for male, 0 for female
+          };
+        } else {
+          xValue = null; // Skip this student if gender is not recognized
+        }
       } else {
         xValue = null; // Skip this student
       }
     } else {
-      switch(xVar) {
-        case 'current_grade': xValue = ranking.current_grade; break;
-        case 'average_score': xValue = metrics.avg_score_pct || 0; break;
-        case 'missed_submission_pct': xValue = metrics.missed_submission_pct || 0; break;
-        case 'quiz1': xValue = studentAssessmentScores[studentId]?.['Quiz 1'] || null; break;
-        case 'quiz2': xValue = studentAssessmentScores[studentId]?.['Quiz 2'] || null; break;
-        case 'quiz3': xValue = studentAssessmentScores[studentId]?.['Quiz 3'] || null; break;
-        case 'midterm': xValue = studentAssessmentScores[studentId]?.['Midterm'] || null; break;
-        case 'final': xValue = studentAssessmentScores[studentId]?.['Final'] || null; break;
-        case 'attendance': xValue = studentAssessmentScores[studentId]?.['Attendance'] || null; break;
-        case 'quiz_avg': xValue = studentTypeAverages[studentId]?.['Quiz'] || null; break;
-        case 'midterm_avg': xValue = studentTypeAverages[studentId]?.['Midterm'] || null; break;
-        case 'final_avg': xValue = studentTypeAverages[studentId]?.['Final'] || null; break;
+      if (xVar.startsWith('assessment_')) {
+        const name = xVar.replace('assessment_', '');
+        xValue = studentAssessmentScores[studentId]?.[name] ?? null;
+      } else if (xVar.startsWith('type_avg_')) {
+        const tname = xVar.replace('type_avg_', '');
+        xValue = studentTypeAverages[studentId]?.[tname] ?? null;
+      } else {
+        switch(xVar) {
+          case 'estimated_grade': xValue = ranking.estimated_grade; break;
+          case 'average_score': xValue = metrics.avg_score_pct || 0; break;
+          case 'variation_score_pct': xValue = metrics.variation_score_pct || 0; break;
+          case 'late_submission_pct': xValue = metrics.late_submission_pct || 0; break;
+          case 'missed_submission_pct': xValue = metrics.missed_submission_pct || 0; break;
+        }
       }
     }
     
     // Extract Y variable value
     if (yVar === 'sex') {
       if (ranking.student.gender) {
-        yValue = {
-          categorical: ranking.student.gender.toLowerCase(), // 'male' or 'female'
-          binary: ranking.student.gender.toLowerCase() === 'male' ? 1 : 0 // 1 for male, 0 for female
-        };
+        const gender = ranking.student.gender.toLowerCase();
+        // Normalize gender values (handle 'm', 'f', 'male', 'female', etc.)
+        let normalizedGender = null;
+        if (gender === 'male' || gender === 'm') {
+          normalizedGender = 'male';
+        } else if (gender === 'female' || gender === 'f') {
+          normalizedGender = 'female';
+        }
+        
+        if (normalizedGender) {
+          yValue = {
+            categorical: normalizedGender,
+            binary: normalizedGender === 'male' ? 1 : 0 // 1 for male, 0 for female
+          };
+        } else {
+          yValue = null; // Skip this student if gender is not recognized
+        }
       } else {
         yValue = null; // Skip this student
       }
     } else {
-      switch(yVar) {
-        case 'current_grade': yValue = ranking.current_grade; break;
-        case 'average_score': yValue = metrics.avg_score_pct || 0; break;
-        case 'missed_submission_pct': yValue = metrics.missed_submission_pct || 0; break;
-        case 'quiz1': yValue = studentAssessmentScores[studentId]?.['Quiz 1'] || null; break;
-        case 'quiz2': yValue = studentAssessmentScores[studentId]?.['Quiz 2'] || null; break;
-        case 'quiz3': yValue = studentAssessmentScores[studentId]?.['Quiz 3'] || null; break;
-        case 'midterm': yValue = studentAssessmentScores[studentId]?.['Midterm'] || null; break;
-        case 'final': yValue = studentAssessmentScores[studentId]?.['Final'] || null; break;
-        case 'attendance': yValue = studentAssessmentScores[studentId]?.['Attendance'] || null; break;
-        case 'quiz_avg': yValue = studentTypeAverages[studentId]?.['Quiz'] || null; break;
-        case 'midterm_avg': yValue = studentTypeAverages[studentId]?.['Midterm'] || null; break;
-        case 'final_avg': yValue = studentTypeAverages[studentId]?.['Final'] || null; break;
+      if (yVar.startsWith('assessment_')) {
+        const name = yVar.replace('assessment_', '');
+        yValue = studentAssessmentScores[studentId]?.[name] ?? null;
+      } else if (yVar.startsWith('type_avg_')) {
+        const tname = yVar.replace('type_avg_', '');
+        yValue = studentTypeAverages[studentId]?.[tname] ?? null;
+      } else {
+        switch(yVar) {
+          case 'estimated_grade': yValue = ranking.estimated_grade; break;
+          case 'average_score': yValue = metrics.avg_score_pct || 0; break;
+          case 'variation_score_pct': yValue = metrics.variation_score_pct || 0; break;
+          case 'late_submission_pct': yValue = metrics.late_submission_pct || 0; break;
+          case 'missed_submission_pct': yValue = metrics.missed_submission_pct || 0; break;
+        }
       }
     }
     
@@ -2343,13 +2453,106 @@ function runRegression() {
   }
   // Calculate regression
   const { slope, intercept, r2 } = linearRegression(xValues, yValues);
+  
+  // Calculate correlation coefficient
+  const correlation = Math.sqrt(r2) * (slope >= 0 ? 1 : -1);
+  
+  // Determine strength of relationship
+  let strength = '';
+  if (Math.abs(correlation) >= 0.8) strength = 'Very Strong';
+  else if (Math.abs(correlation) >= 0.6) strength = 'Strong';
+  else if (Math.abs(correlation) >= 0.4) strength = 'Moderate';
+  else if (Math.abs(correlation) >= 0.2) strength = 'Weak';
+  else strength = 'Very Weak';
+  
   // Display results
   document.getElementById('regressionEquation').textContent = `Y = ${slope.toFixed(3)}X + ${intercept.toFixed(3)}`;
   document.getElementById('regressionR2').textContent = r2.toFixed(4);
+  document.getElementById('regressionCorrelation').textContent = correlation.toFixed(4);
+  document.getElementById('regressionStrength').textContent = strength;
+  
   // Plot
   createRegressionScatterPlot(xValues, yValues, labels, slope, intercept, xVar, yVar);
   document.getElementById('regressionResults').classList.remove('hidden');
   document.getElementById('regressionLoading').classList.add('hidden');
+}
+
+// Dynamically build regression variable dropdown options from analytics data
+function buildRegressionVariableOptions() {
+  const xSel = document.getElementById('regressionX');
+  const ySel = document.getElementById('regressionY');
+  if (!xSel || !ySel) return;
+
+  const studentData = @json($analytics['student_rankings']);
+  const studentAssessmentScores = @json($analytics['student_assessment_scores']);
+  const studentTypeAverages = @json($analytics['student_type_averages']);
+
+  const assessmentKeys = new Set();
+  const typeAvgKeys = new Set();
+
+  // Union of keys across students
+  studentData.forEach(r => {
+    const sid = r.student.id;
+    const ass = studentAssessmentScores[sid] || {};
+    Object.keys(ass).forEach(k => assessmentKeys.add(k));
+    const tavg = studentTypeAverages[sid] || {};
+    Object.keys(tavg).forEach(k => typeAvgKeys.add(k));
+  });
+
+  const baseGroups = [
+    {
+      label: 'Student Demographics',
+      items: [
+        { value: 'sex', text: 'Gender (Categorical)' }
+      ]
+    },
+    {
+      label: 'Performance Metrics',
+      items: [
+        { value: 'estimated_grade', text: 'Estimated Grade (%)' },
+        { value: 'average_score', text: 'Average Score (%)' },
+        { value: 'variation_score_pct', text: 'Score Variation (%)' },
+        { value: 'late_submission_pct', text: 'Late Submissions (%)' },
+        { value: 'missed_submission_pct', text: 'Missed Submissions (%)' }
+      ]
+    }
+  ];
+
+  const assessmentGroup = {
+    label: 'Assessment Percentages',
+    items: Array.from(assessmentKeys).sort().map(name => ({
+      value: `assessment_${name}`,
+      text: `${name} (%)`
+    }))
+  };
+
+  const typeAvgGroup = {
+    label: 'Assessment Type Averages',
+    items: Array.from(typeAvgKeys).sort().map(name => ({
+      value: `type_avg_${name}`,
+      text: `${name} Average (%)`
+    }))
+  };
+
+  const allGroups = [...baseGroups, assessmentGroup, typeAvgGroup];
+
+  function renderSelect(sel) {
+    sel.innerHTML = '<option value="">Select Variable</option>';
+    allGroups.forEach(group => {
+      const og = document.createElement('optgroup');
+      og.label = group.label;
+      group.items.forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it.value;
+        opt.textContent = it.text;
+        og.appendChild(opt);
+      });
+      sel.appendChild(og);
+    });
+  }
+
+  renderSelect(xSel);
+  renderSelect(ySel);
 }
 
 function linearRegression(x, y) {
@@ -2474,22 +2677,28 @@ function getVariableLabel(variable) {
     return 'Gender (Categorical)';
   }
   
-  if (variable.startsWith('assessment_')) {
+  if (variable && variable.startsWith('assessment_')) {
     const assessmentName = variable.replace('assessment_', '');
     return `${assessmentName} (%)`;
   }
   
-  if (variable.startsWith('type_avg_')) {
+  if (variable && variable.startsWith('type_avg_')) {
     const typeName = variable.replace('type_avg_', '');
     return `${typeName} Average (%)`;
   }
   
   const labels = {
-    'current_grade': 'Current Grade (%)',
+    'estimated_grade': 'Estimated Grade (%)',
     'avg_score_pct': 'Average Score (%)',
     'variation_score_pct': 'Score Variation (%)',
     'late_submission_pct': 'Late Submissions (%)',
     'missed_submission_pct': 'Missed Submissions (%)',
+    'attendance': 'Attendance (%)',
+    'participation': 'Participation (%)',
+    'homework': 'Homework (%)',
+    'quiz_avg': 'Quiz Average (%)',
+    'exam_avg': 'Exam Average (%)',
+    'project_avg': 'Project Average (%)',
     'risk_score': 'Risk Score (%)',
     'completed_assessments': 'Completed Assessments',
     'total_assessments': 'Total Assessments'
@@ -2856,7 +3065,7 @@ function openHelpModal(topic) {
         <li><b>Why bands?</b> They provide interpretable summaries for stakeholders while preserving order (ordinal scale). We show the distribution across these bands and the share of students per band.</li>
         <li><b>Defaults vs policy:</b> The cut scores in this system are configurable; align them with your department or institutional guidelines.</li>
       </ul>
-      <p class="text-xs text-gray-500">Note: References for banding vary by institution; adopt your school’s official thresholds where applicable.</p>
+      <p class="text-xs text-gray-500">Note: References for banding vary by institution; adopt your school's official thresholds where applicable.</p>
     `;
   } else if (topic === 'difficulty') {
     title.textContent = 'About Assessment Difficulty';
@@ -3022,8 +3231,17 @@ function runPresetCorrelationAnalyses() {
       const id = r.student.id;
       const gender = (r.student.gender || '').toLowerCase();
       const qavg = studentTypeAverages[id]?.['Quiz'];
-      if (!isNaN(qavg) && (gender === 'male' || gender === 'female')) {
-        const b = gender === 'male' ? 1 : 0;
+      
+      // Normalize gender values (handle 'm', 'f', 'male', 'female', etc.)
+      let normalizedGender = null;
+      if (gender === 'male' || gender === 'm') {
+        normalizedGender = 'male';
+      } else if (gender === 'female' || gender === 'f') {
+        normalizedGender = 'female';
+      }
+      
+      if (!isNaN(qavg) && normalizedGender) {
+        const b = normalizedGender === 'male' ? 1 : 0;
         bin.push(b);
         cont.push(qavg);
         if (b === 1) maleVals.push(qavg); else femaleVals.push(qavg);
@@ -3217,9 +3435,39 @@ function runPreset(key) {
     results.classList.remove('hidden');
   } else if (key === 'gender_quiz') {
     const bin = [], cont = [], femaleVals = [], maleVals = [];
+    
+    // Debug: Log all gender values to see what we're getting
+    console.log('Debug: Available gender values:', studentData.map(r => ({ 
+      name: r.student.first_name, 
+      gender: r.student.gender, 
+      normalized: (() => {
+        const g = (r.student.gender || '').toLowerCase();
+        if (g === 'male' || g === 'm') return 'male';
+        if (g === 'female' || g === 'f') return 'female';
+        return 'unknown';
+      })()
+    })));
+    
     studentData.forEach(r => {
-      const id = r.student.id; const g = (r.student.gender || '').toLowerCase(); const qavg = studentTypeAverages[id]?.['Quiz'];
-      if (!isNaN(qavg) && (g === 'male' || g === 'female')) { const b = g==='male'?1:0; bin.push(b); cont.push(qavg); if (b) maleVals.push(qavg); else femaleVals.push(qavg); }
+      const id = r.student.id; 
+      const g = (r.student.gender || '').toLowerCase(); 
+      const qavg = studentTypeAverages[id]?.['Quiz'];
+      
+      // Normalize gender values (handle 'm', 'f', 'male', 'female', etc.)
+      let normalizedGender = null;
+      if (g === 'male' || g === 'm') {
+        normalizedGender = 'male';
+      } else if (g === 'female' || g === 'f') {
+        normalizedGender = 'female';
+      }
+      
+      if (!isNaN(qavg) && normalizedGender) { 
+        const b = normalizedGender === 'male' ? 1 : 0; 
+        bin.push(b); 
+        cont.push(qavg); 
+        if (b) maleVals.push(qavg); 
+        else femaleVals.push(qavg); 
+      }
     });
     if (bin.length < 2 || femaleVals.length === 0 || maleVals.length === 0) { empty.textContent = 'Not enough data for Gender vs Quiz Average.'; empty.classList.remove('hidden'); return; }
     const n = bin.length; const p1 = bin.reduce((s,v)=>s+v,0)/n; const p0 = 1-p1;
@@ -3248,7 +3496,7 @@ function runPreset(key) {
     studentData.forEach(r => {
       const id = r.student.id;
       const att = studentAssessmentScores[id]?.['Attendance'];
-      const grade = r.current_grade;
+      const grade = r.estimated_grade;
       if (!isNaN(att) && !isNaN(grade)) { x.push(att); y.push(grade); }
     });
     if (x.length < 2) { empty.textContent = 'Not enough data for Attendance vs Current Grade.'; empty.classList.remove('hidden'); return; }
@@ -3259,7 +3507,7 @@ function runPreset(key) {
     const r = calculateCorrelationCoefficient(x, y, method);
     const n = x.length; const t = (1 - r*r) === 0 ? 0 : r * Math.sqrt((n - 2) / (1 - r*r));
     const p = calculatePValue(t, n - 2);
-    document.getElementById('presetTitle').textContent = `Attendance (%) → Current Grade (%) (${method === 'pearson' ? 'Pearson' : 'Spearman'})`;
+    document.getElementById('presetTitle').textContent = `Attendance (%) → Estimated Grade (%) (${method === 'pearson' ? 'Pearson' : 'Spearman'})`;
     document.getElementById('presetHypotheses').innerHTML = '<div><b>H₀:</b> No correlation between attendance and current grade.</div><div><b>H₁:</b> There is a correlation between attendance and current grade.</div>';
     document.getElementById('presetStats').textContent = `r = ${r.toFixed(4)}, p = ${(typeof p==='number'?p:0).toFixed(3)} · ${strengthLabel(r)}`;
     document.getElementById('presetDecision').textContent = `Decision: Attendance is ${nx.isNormal ? 'approximately normal' : 'non-normal'} (W'=${nx.wPrime.toFixed(3)}), Current Grade is ${ny.isNormal ? 'approximately normal' : 'non-normal'} (W'=${ny.wPrime.toFixed(3)}). Therefore, ${method === 'pearson' ? 'Pearson was used (both normal).' : 'Spearman was used (at least one non-normal).'}`;
@@ -3286,7 +3534,7 @@ function runPreset(key) {
     studentData.forEach(r => {
       const id = r.student.id;
       const late = studentMetrics[id]?.late_submission_pct;
-      const grade = r.current_grade;
+      const grade = r.estimated_grade;
       if (!isNaN(late) && !isNaN(grade)) { x.push(late); y.push(grade); }
     });
     if (x.length < 2) { empty.textContent = 'Not enough data for Late Submissions vs Current Grade.'; empty.classList.remove('hidden'); return; }
