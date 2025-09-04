@@ -1300,8 +1300,16 @@ Route::get('/subjects/{subject}/classes/{classSection}/class-analytics/{term}', 
             $scorePercents = [];
             foreach ($assessmentType->assessments as $assessment) {
                 $score = $assessment->scores()->where('student_id', $student->id)->first();
-                if ($score && $score->score !== null && $assessment->max_score > 0) {
-                    $scorePercents[] = ($score->score / $assessment->max_score) * 100;
+                if ($assessment->max_score > 0) {
+                    if ($score && $score->score !== null) {
+                        $percent = ($score->score / $assessment->max_score) * 100;
+                        // Store per-assessment score for scatter plots (keyed by assessment name)
+                        $analytics['student_assessment_scores'][$student->id][$assessment->name] = $percent;
+                        $scorePercents[] = $percent;
+                    } else {
+                        // Explicitly record missing score for this assessment
+                        $analytics['student_assessment_scores'][$student->id][$assessment->name] = null;
+                    }
                 }
             }
             if (count($scorePercents) > 0) {
@@ -1364,6 +1372,39 @@ Route::get('/subjects/{subject}/classes/{classSection}/class-analytics/{term}', 
         'needs_improvement' => count(array_filter($grades, fn($g) => $g >= 60 && $g < 70)),
         'failing' => count(array_filter($grades, fn($g) => $g < 60))
     ];
+    
+    // Build assessment_difficulty list for the dropdown and scatter plots
+    $assessmentDifficulty = [];
+    foreach ($termTypes as $type) {
+        if (strtolower($type->name) === 'attendance') {
+            continue;
+        }
+        foreach ($type->assessments as $assessment) {
+            // Collect percent scores for all students for this assessment
+            $percents = [];
+            foreach ($students as $stu) {
+                $score = $assessment->scores->where('student_id', $stu->id)->first();
+                if ($score && $score->score !== null && $assessment->max_score > 0) {
+                    $percents[] = ($score->score / $assessment->max_score) * 100;
+                }
+            }
+            if (count($percents) > 0) {
+                $avg = array_sum($percents) / count($percents);
+                $assessmentDifficulty[] = [
+                    'name' => $assessment->name,
+                    'type' => $type->name,
+                    'average_score' => $avg,
+                    'difficulty_level' => $avg >= 85 ? 'Easy' : ($avg >= 70 ? 'Medium' : 'Hard'),
+                    'created_at' => optional($assessment->created_at)->toDateTimeString(),
+                ];
+            }
+        }
+    }
+    // Sort chronologically to make the select stable
+    usort($assessmentDifficulty, function($a, $b) {
+        return strcmp((string)$a['created_at'], (string)$b['created_at']);
+    });
+    $analytics['assessment_difficulty'] = $assessmentDifficulty;
     
     // Calculate class statistics using estimated grades
     $analytics['class_stats'] = [
