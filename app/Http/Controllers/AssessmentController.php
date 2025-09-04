@@ -282,6 +282,17 @@ class AssessmentController extends Controller
             'description' => $request->description,
         ]);
 
+        // Recalculate existing percentage scores if scaling inputs changed
+        if ($assessment->wasChanged(['max_score', 'passing_score'])) {
+            $assessment->scores()->chunkById(200, function ($scores) {
+                foreach ($scores as $score) {
+                    /** @var \App\Models\AssessmentScore $score */
+                    $score->calculatePercentageScore();
+                    $score->save();
+                }
+            });
+        }
+
         return back()->with('success', 'Assessment updated successfully!');
     }
 

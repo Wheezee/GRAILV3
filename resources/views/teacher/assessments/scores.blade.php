@@ -129,7 +129,8 @@
                            value="{{ $currentScore }}"
                            data-student-id="{{ $student->id }}"
                            data-assessment-id="{{ $assessment->id }}"
-                           data-warning-score="{{ $assessment->warning_score }}">
+                           data-warning-score="{{ $assessment->warning_score }}"
+                           data-passing-score="{{ $assessment->passing_score }}">
                     <span class="text-xs text-gray-500">/ {{ $assessment->max_score }}</span>
                     <span class="risk-indicator ml-1 text-yellow-600 dark:text-yellow-400 hidden" title="At Risk: Below warning score">&#9888;</span>
                   </div>
@@ -143,9 +144,9 @@
                       <span class="text-gray-600 dark:text-gray-400">Late Submission</span>
                     </label>
                   </div>
-                  @if($currentScore)
+                  @if($currentScore !== '')
                     <div class="text-xs text-gray-500">
-                      {{ number_format(($currentScore / $assessment->max_score) * 100, 1) }}%
+                      {{ isset($score) && $score->percentage_score !== null ? number_format($score->percentage_score, 1) : number_format(($currentScore / $assessment->max_score) * 100, 1) }}% 🙂
                     </div>
                   @endif
                 </div>
@@ -240,12 +241,25 @@ document.addEventListener('DOMContentLoaded', function() {
     input.addEventListener('input', function() {
       const score = parseFloat(this.value) || 0;
       const maxScore = parseFloat(this.getAttribute('max'));
-      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+      const passingScoreAttr = this.getAttribute('data-passing-score');
+      const hasPassing = passingScoreAttr !== null && passingScoreAttr !== '';
+      let percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+      if (hasPassing) {
+        const pass = parseFloat(passingScoreAttr) || 0;
+        const passPct = maxScore > 0 ? (pass / maxScore) * 100 : 0;
+        if (passPct > 0) {
+          if (percentage >= passPct) {
+            percentage = 75 + ((percentage - passPct) / (100 - passPct)) * 25;
+          } else {
+            percentage = (percentage / passPct) * 75;
+          }
+        }
+      }
       
       // Update percentage display if it exists
       const percentageElement = this.closest('td').querySelector('.text-xs.text-gray-500');
       if (percentageElement && this.value !== '') {
-        percentageElement.textContent = percentage.toFixed(1) + '%';
+        percentageElement.textContent = percentage.toFixed(1) + '% 🙂';
       }
     });
   });

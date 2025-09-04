@@ -193,6 +193,7 @@
                              data-student-id="{{ $student->id }}"
                              data-assessment-id="{{ $assessment->id }}"
                              data-max-score="{{ $assessment->max_score }}"
+                             data-passing-score="{{ $assessment->passing_score }}"
                              title="Maximum score: {{ $assessment->max_score }}">
                       <div class="absolute -top-6 left-0 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
                         Max: {{ $assessment->max_score }}
@@ -215,7 +216,7 @@
                   </div>
                   @if($currentScore)
                     <div class="text-xs text-gray-500 percentage-display">
-                      {{ number_format(($currentScore / $assessment->max_score) * 100, 1) }}%
+                      {{ $score && $score->percentage_score !== null ? number_format($score->percentage_score, 1) : number_format(($currentScore / $assessment->max_score) * 100, 1) }}%
                     </div>
                   @else
                     <div class="text-xs text-gray-500 percentage-display" style="display: none;"></div>
@@ -651,6 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const studentId = this.dataset.studentId;
       const assessmentId = this.dataset.assessmentId;
       const maxScore = parseFloat(this.getAttribute('max'));
+      const passingAttr = this.getAttribute('data-passing-score');
       let score = parseFloat(this.value) || 0;
       
       // Validate score against maximum
@@ -663,7 +665,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
       }
       
-      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+      let percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+      if (passingAttr) {
+        const pass = parseFloat(passingAttr) || 0;
+        const passPct = maxScore > 0 ? (pass / maxScore) * 100 : 0;
+        if (passPct > 0) {
+          if (percentage >= passPct) {
+            percentage = 75 + ((percentage - passPct) / (100 - passPct)) * 25;
+          } else {
+            percentage = (percentage / passPct) * 75;
+          }
+        }
+      }
       
       // Update percentage display
       const percentageElement = this.closest('td').querySelector('.percentage-display');

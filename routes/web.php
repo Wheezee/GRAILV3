@@ -710,7 +710,11 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
                     foreach ($allAssessments as $assessment) {
                         $score = $assessmentScores->where('assessment_id', $assessment->id)->first();
                         if ($score && $score->score !== null) {
-                            $typeGrades[] = ($score->score / $assessment->max_score) * 100;
+                            // Prefer scaled percentage_score if available (passing->75% rule)
+                            $percent = $score->percentage_score !== null
+                                ? (float)$score->percentage_score
+                                : ($assessment->max_score > 0 ? ($score->score / $assessment->max_score) * 100 : 0);
+                            $typeGrades[] = $percent;
                         } else {
                             $typeGrades[] = 0; // missing counts as 0%
                         }
@@ -763,7 +767,10 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
                     foreach ($allAssessments as $assessment) {
                         $score = $assessmentScores->where('assessment_id', $assessment->id)->first();
                         if ($score && $score->score !== null) {
-                            $typeGrades[] = ($score->score / $assessment->max_score) * 100;
+                            $percent = $score->percentage_score !== null
+                                ? (float)$score->percentage_score
+                                : ($assessment->max_score > 0 ? ($score->score / $assessment->max_score) * 100 : 0);
+                            $typeGrades[] = $percent;
                         } else {
                             $typeGrades[] = 0; // missing counts as 0%
                         }
@@ -793,16 +800,15 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
             }
         }
         
-        // Calculate overall grade using subject weights
-        if ($student->midterm_grade !== null && $student->final_grade !== null && $gradingStructure) {
+        // Calculate overall grade using subject weights even if one term is missing
+        if ($gradingStructure && ($student->midterm_grade !== null || $student->final_grade !== null)) {
             $midtermWeight = $gradingStructure->midterm_weight / 100;
             $finalWeight = $gradingStructure->final_weight / 100;
             
-            $student->overall_grade = round(
-                ($student->midterm_grade * $midtermWeight) + 
-                ($student->final_grade * $finalWeight), 
-                1
-            );
+            $mid = $student->midterm_grade !== null ? $student->midterm_grade : 0;
+            $fin = $student->final_grade !== null ? $student->final_grade : 0;
+            
+            $student->overall_grade = round(($mid * $midtermWeight) + ($fin * $finalWeight), 1);
         }
     }
     

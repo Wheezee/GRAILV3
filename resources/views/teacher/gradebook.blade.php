@@ -358,16 +358,16 @@
     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
       @forelse($students as $student)
         @php
-          $isFailing = $student->overall_grade !== null && $student->overall_grade < 75;
+          $isFailing = false; // Disable server-side red styling; handled via per-cell indicators
         @endphp
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td class="px-2 sm:px-6 py-4 bg-white dark:bg-gray-800 sticky left-0 z-10">
-            <div class="text-xs sm:text-sm font-medium {{ $isFailing ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100' }}">
+            <div class="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
               {{ $student->student_id }}
             </div>
           </td>
           <td class="px-2 sm:px-6 py-4 bg-white dark:bg-gray-800 sticky left-0 z-10">
-            <div class="text-xs sm:text-sm font-medium {{ $isFailing ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100' }}">
+            <div class="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
               <span class="hidden sm:inline">{{ $student->last_name }}, {{ $student->first_name }}</span>
               <span class="sm:hidden">{{ $student->last_name }}, {{ $student->first_name }}</span>
             </div>
