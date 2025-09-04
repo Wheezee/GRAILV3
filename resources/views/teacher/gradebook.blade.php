@@ -687,6 +687,24 @@ let gradingParams = {
   custom_formula: 'inverse_linear'
 };
 
+// Weights provided by backend for reliable calculations
+const midtermTypeWeights = {
+  @foreach($midtermAssessmentTypes as $type)
+    '{{ trim($type->name) }}': {{ (float)$type->weight }},
+  @endforeach
+};
+
+const finalTypeWeights = {
+  @foreach($finalAssessmentTypes as $type)
+    '{{ trim($type->name) }}': {{ (float)$type->weight }},
+  @endforeach
+};
+
+const termSectionWeights = {
+  midterm: {{ $gradingStructure ? (float)$gradingStructure->midterm_weight : 50 }},
+  final: {{ $gradingStructure ? (float)$gradingStructure->final_weight : 50 }}
+};
+
 // Grade conversion functions using dynamic parameters
 function convertGrade(percentage, mode, params = gradingParams) {
   if (mode === 'percentage') {
@@ -899,7 +917,11 @@ function applyGradingSettings() {
   };
   
   // Update grade display immediately
-  updateGradeDisplay();
+  if (currentGradeView === 'projected') {
+    recalculateGrades();
+  } else {
+    updateGradeDisplay();
+  }
   
   // Close modal
   closeGradingModal();
@@ -1024,7 +1046,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('custom_formula_section').classList.add('hidden');
       }
       
-      updateGradeDisplay();
+      if (currentGradeView === 'projected') {
+        recalculateGrades();
+      } else {
+        updateGradeDisplay();
+      }
     });
   }
   
@@ -1121,18 +1147,30 @@ function recalculateGrades() {
     const originalGrade = display.dataset.grade;
     if (originalGrade) {
       if (currentGradeView === 'estimated') {
-        // Show original grades
-        display.textContent = originalGrade + '%';
-        display.style.color = '';
+        // Show original grades converted based on current grading mode
+        const gradingMode = document.getElementById('grading_mode').value;
+        const converted = convertGrade(parseFloat(originalGrade), gradingMode, gradingParams);
+        display.textContent = converted;
+        display.dataset.type = gradingMode;
+        const colorClass = getGradeColor(converted, gradingMode);
+        if (colorClass) {
+          display.className = `grade-display text-lg font-bold ${colorClass}`;
+        } else {
+          display.className = 'grade-display text-lg';
+        }
         // Keep the original breakdown tooltip
         const originalTitle = display.getAttribute('data-original-title') || display.title;
         display.title = originalTitle;
       } else {
-        // Show projected grades with accurate calculation
-        const projectedGrade = calculateAccurateProjectedGrade(display);
-        display.textContent = projectedGrade + '%';
-        display.style.color = '#dc2626';
-        display.title = 'Projected Final Grade (all weights included) - Hover for breakdown';
+        // Show projected grades with accurate calculation and convert by grading mode
+        const projectedGrade = parseFloat(calculateAccurateProjectedGrade(display));
+        const gradingMode = document.getElementById('grading_mode').value;
+        const converted = convertGrade(projectedGrade, gradingMode, gradingParams);
+        display.textContent = converted;
+        display.dataset.type = gradingMode;
+        const colorClass = getGradeColor(converted, gradingMode) || 'text-red-600';
+        display.className = `grade-display text-lg font-bold ${colorClass}`;
+        display.title = getProjectedBreakdownText(display);
       }
     }
   });
@@ -1201,43 +1239,35 @@ function calculateMidtermProjectedGrade(studentRow) {
   const scoreCells = Array.from(cells).slice(2, -3); // Skip first 2 and last 3 columns
   
   if (scoreCells.length >= 1) {
-    const attendanceText = scoreCells[0].textContent.trim();
-    if (attendanceText !== '--' && attendanceText !== '') {
-      attendanceScore = parseFloat(attendanceText) || 0;
-    }
+    const p = extractPercentFromCell(scoreCells[0]);
+    if (!isNaN(p)) attendanceScore = p;
   }
   
   if (scoreCells.length >= 2) {
-    const quiz1Text = scoreCells[1].textContent.trim();
-    if (quiz1Text !== '--' && quiz1Text !== '') {
-      quiz1Score = parseFloat(quiz1Text) || 0;
-    }
+    const p = extractPercentFromCell(scoreCells[1]);
+    if (!isNaN(p)) quiz1Score = p;
   }
   
   if (scoreCells.length >= 3) {
-    const quiz2Text = scoreCells[2].textContent.trim();
-    if (quiz2Text !== '--' && quiz2Text !== '') {
-      quiz2Score = parseFloat(quiz2Text) || 0;
-    }
+    const p = extractPercentFromCell(scoreCells[2]);
+    if (!isNaN(p)) quiz2Score = p;
   }
   
   if (scoreCells.length >= 4) {
-    const examText = scoreCells[3].textContent.trim();
-    if (examText !== '--' && examText !== '') {
-      examScore = parseFloat(examText) || 0;
-    }
+    const p = extractPercentFromCell(scoreCells[3]);
+    if (!isNaN(p)) examScore = p;
   }
   
-  // Convert scores to percentages (assuming max scores from the image)
-  const attendancePercent = attendanceScore; // Already 100%
-  const quiz1Percent = (quiz1Score / 15) * 100; // Max score 15
-  const quiz2Percent = (quiz2Score / 15) * 100; // Max score 15
-  const examPercent = examScore; // Assuming already percentage
+  // Values are already percentages extracted from the cells
+  const attendancePercent = attendanceScore;
+  const quiz1Percent = quiz1Score;
+  const quiz2Percent = quiz2Score;
+  const examPercent = examScore;
   
-  // Calculate weighted average with ALL weights included
-  const attendanceWeight = 20; // 20%
-  const quizWeight = 40; // 40% (split between quiz1 and quiz2)
-  const examWeight = 40; // 40%
+  // Use backend-provided weights when available (fallback 20/40/40)
+  const attendanceWeight = typeof midtermTypeWeights['Attendance'] === 'number' ? midtermTypeWeights['Attendance'] : 20;
+  const quizWeight = typeof midtermTypeWeights['Quiz'] === 'number' ? midtermTypeWeights['Quiz'] : 40;
+  const examWeight = typeof midtermTypeWeights['Exam'] === 'number' ? midtermTypeWeights['Exam'] : 40;
   
   // For quizzes, average the two quiz scores
   const quizAverage = (quiz1Percent + quiz2Percent) / 2;
@@ -1262,14 +1292,109 @@ function calculateOverallProjectedGrade(studentRow) {
   const midtermProjected = parseFloat(calculateMidtermProjectedGrade(studentRow));
   const finalProjected = parseFloat(calculateFinalProjectedGrade(studentRow));
   
-  // Use subject weights (from the image: Midterm 100%, Final 0%)
-  const midtermWeight = 100;
-  const finalWeight = 0;
+  // Use backend-provided term section weights (fallback 100/0)
+  const midtermWeight = typeof termSectionWeights.midterm === 'number' ? termSectionWeights.midterm : 100;
+  const finalWeight = typeof termSectionWeights.final === 'number' ? termSectionWeights.final : 0;
   
   const projectedOverall = (midtermProjected * midtermWeight / 100) + 
                           (finalProjected * finalWeight / 100);
   
   return projectedOverall.toFixed(1);
+}
+
+
+// Extract first percentage value from a cell's inner content
+function extractPercentFromCell(cell) {
+  if (!cell) return NaN;
+  // Search specifically for a percentage text node
+  const percentNode = Array.from(cell.querySelectorAll('div, span'))
+    .map(el => (el.textContent || '').trim())
+    .find(t => /\d+\.?\d*%/.test(t));
+  const source = percentNode || (cell.textContent || '');
+  const match = source.match(/(\d+\.?\d*)%/);
+  if (match) return parseFloat(match[1]);
+  // Fallback: try to parse number and treat as percentage
+  const num = parseFloat(source);
+  return isNaN(num) ? NaN : num;
+}
+
+// Helpers for projected breakdown tooltips
+function parseProjectedScoreCells(studentRow) {
+  const cells = studentRow.querySelectorAll('td');
+  const scoreCells = Array.from(cells).slice(2, -3);
+
+  let attendanceScore = 0;
+  let quiz1Score = 0;
+  let quiz2Score = 0;
+  let examScore = 0;
+
+  if (scoreCells.length >= 1) {
+    const t = scoreCells[0].textContent.trim();
+    if (t !== '--' && t !== '') attendanceScore = parseFloat(t) || 0;
+  }
+  if (scoreCells.length >= 2) {
+    const t = scoreCells[1].textContent.trim();
+    if (t !== '--' && t !== '') quiz1Score = parseFloat(t) || 0;
+  }
+  if (scoreCells.length >= 3) {
+    const t = scoreCells[2].textContent.trim();
+    if (t !== '--' && t !== '') quiz2Score = parseFloat(t) || 0;
+  }
+  if (scoreCells.length >= 4) {
+    const t = scoreCells[3].textContent.trim();
+    if (t !== '--' && t !== '') examScore = parseFloat(t) || 0;
+  }
+
+  const attendancePercent = attendanceScore; // 0-100 already
+  const quiz1Percent = (quiz1Score / 15) * 100; // max 15
+  const quiz2Percent = (quiz2Score / 15) * 100; // max 15
+  const examPercent = examScore; // 0-100 already
+
+  return { attendancePercent, quiz1Percent, quiz2Percent, examPercent };
+}
+
+function getGradeCellType(gradeDisplay) {
+  const gradeCell = gradeDisplay.closest('td');
+  const cellIndex = Array.from(gradeCell.parentElement.children).indexOf(gradeCell);
+  const totalColumns = gradeCell.parentElement.children.length;
+  if (cellIndex === totalColumns - 3) return 'midterm';
+  if (cellIndex === totalColumns - 2) return 'final';
+  return 'overall';
+}
+
+function getProjectedBreakdownText(gradeDisplay) {
+  const studentRow = gradeDisplay.closest('tr');
+  if (!studentRow) return 'Projected Grade';
+
+  const type = getGradeCellType(gradeDisplay);
+
+  if (type === 'midterm') {
+    const { attendancePercent, quiz1Percent, quiz2Percent, examPercent } = parseProjectedScoreCells(studentRow);
+    const attendanceWeight = 20;
+    const quizWeight = 40;
+    const examWeight = 40;
+    const quizAvg = (isNaN(quiz1Percent) ? 0 : quiz1Percent) + (isNaN(quiz2Percent) ? 0 : quiz2Percent);
+    const quizAvgPercent = quizAvg / 2;
+
+    const attPts = (attendancePercent * attendanceWeight) / 100;
+    const quizPts = (quizAvgPercent * quizWeight) / 100;
+    const examPts = (examPercent * examWeight) / 100;
+
+    return `Projected Midterm: Att ${attendancePercent.toFixed(1)}% (${attPts.toFixed(1)} pts), Quiz avg ${quizAvgPercent.toFixed(1)}% (${quizPts.toFixed(1)} pts), Exam ${examPercent.toFixed(1)}% (${examPts.toFixed(1)} pts)`;
+  }
+
+  if (type === 'final') {
+    return 'Projected Final: No final assessments yet';
+  }
+
+  // overall
+  const midtermProjected = parseFloat(calculateMidtermProjectedGrade(studentRow));
+  const finalProjected = parseFloat(calculateFinalProjectedGrade(studentRow));
+  const midtermWeight = 100;
+  const finalWeight = 0;
+  const midPts = (midtermProjected * midtermWeight) / 100;
+  const finPts = (finalProjected * finalWeight) / 100;
+  return `Projected Overall: Midterm ${midtermProjected.toFixed(1)}% (${midPts.toFixed(1)} pts, ${midtermWeight}%), Final ${finalProjected.toFixed(1)}% (${finPts.toFixed(1)} pts, ${finalWeight}%)`;
 }
 </script>
 @endsection 
