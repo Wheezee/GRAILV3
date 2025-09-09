@@ -24,7 +24,51 @@ class AttendanceController extends Controller
         
         $assessment = Assessment::where('id', $assessmentId)
             ->where('assessment_type_id', $assessmentTypeId)
-            ->firstOrFail();
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
+            ->first();
+
+        // If the provided assessment id isn't valid for this class, auto-create a class-specific one and redirect
+        if (!$assessment) {
+            $assessmentType = $classSection->subject->assessmentTypes()
+                ->where('term', $term)
+                ->findOrFail($assessmentTypeId);
+
+            // Create a per-class attendance assessment
+            $newAssessment = $assessmentType->assessments()->create([
+                'name' => 'Attendance',
+                'max_score' => 100,
+                'passing_score' => 75,
+                'warning_score' => 85,
+                'due_date' => null,
+                'description' => 'Attendance tracking for ' . ucfirst($term) . ' term',
+                'order' => $assessmentType->assessments()
+                    ->where('term', $term)
+                    ->where(function ($q) use ($classSection) {
+                        $q->whereNull('class_section_id')
+                          ->orWhere('class_section_id', $classSection->id);
+                    })
+                    ->count() + 1,
+                'term' => $term,
+                'class_section_id' => $classSection->id,
+            ]);
+
+            return redirect()->route('attendance.index', [
+                'subject' => $subjectId,
+                'classSection' => $classSectionId,
+                'term' => $term,
+                'assessmentType' => $assessmentTypeId,
+                'assessment' => $newAssessment->id,
+            ]);
+        }
+
+        // Bind shared attendance assessment to current class on first access
+        if ($assessment->class_section_id === null) {
+            $assessment->class_section_id = $classSection->id;
+            $assessment->save();
+        }
 
         if (!$assessment->isAttendanceAssessment()) {
             abort(404, 'This is not an attendance assessment.');
@@ -89,7 +133,17 @@ class AttendanceController extends Controller
         
         $assessment = Assessment::where('id', $assessmentId)
             ->where('assessment_type_id', $assessmentTypeId)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->firstOrFail();
+
+        // Bind shared attendance assessment to current class on first save
+        if ($assessment->class_section_id === null) {
+            $assessment->class_section_id = $classSection->id;
+            $assessment->save();
+        }
 
         if (!$assessment->isAttendanceAssessment()) {
             abort(404, 'This is not an attendance assessment.');
@@ -146,8 +200,8 @@ class AttendanceController extends Controller
             ], 500);
         }
 
-        // Update assessment scores based on new attendance data
-        $this->updateAttendanceScores($assessment);
+        // Update assessment scores for current class only
+        $this->updateAttendanceScores($assessment, $classSection);
 
         return response()->json([
             'success' => true,
@@ -172,7 +226,17 @@ class AttendanceController extends Controller
         
         $assessment = Assessment::where('id', $assessmentId)
             ->where('assessment_type_id', $assessmentTypeId)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->firstOrFail();
+
+        // Bind shared attendance assessment to current class on first data fetch
+        if ($assessment->class_section_id === null) {
+            $assessment->class_section_id = $classSection->id;
+            $assessment->save();
+        }
 
         $students = $classSection->students()->orderBy('last_name')->orderBy('first_name')->get();
         
@@ -213,15 +277,25 @@ class AttendanceController extends Controller
         
         $assessment = Assessment::where('id', $assessmentId)
             ->where('assessment_type_id', $assessmentTypeId)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->firstOrFail();
+
+        // Bind shared attendance assessment to current class on first delete
+        if ($assessment->class_section_id === null) {
+            $assessment->class_section_id = $classSection->id;
+            $assessment->save();
+        }
 
         // Delete all attendance records for this date
         $assessment->attendanceRecords()
             ->where('date', $request->date)
             ->delete();
 
-        // Update assessment scores
-        $this->updateAttendanceScores($assessment);
+        // Update assessment scores for this class only
+        $this->updateAttendanceScores($assessment, $classSection);
 
         return response()->json([
             'success' => true,
@@ -232,13 +306,10 @@ class AttendanceController extends Controller
     /**
      * Update attendance scores for all students in this assessment
      */
-    private function updateAttendanceScores(Assessment $assessment)
+    private function updateAttendanceScores(Assessment $assessment, ClassSection $classSection)
     {
-        $students = $assessment->assessmentType->subject->classSections()
-            ->where('teacher_id', auth()->id())
-            ->with('students')
-            ->get()
-            ->flatMap->students;
+        // Limit to current class only
+        $students = $classSection->students;
 
         foreach ($students as $student) {
             $attendanceScore = $assessment->calculateAttendanceScore($student->id);

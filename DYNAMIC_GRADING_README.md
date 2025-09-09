@@ -1,10 +1,10 @@
 # Dynamic Grading System
 
-This document explains the new dynamic grading system implemented in GRAIL V2.
+This document explains the dynamic grading system implemented in GRAIL V3.
 
 ## Overview
 
-The dynamic grading system allows teachers to customize how grades are calculated and displayed in the gradebook. It supports multiple grading methods and configurable parameters.
+The dynamic grading system allows teachers to customize how grades are calculated and displayed in the gradebook. It supports multiple grading methods and configurable parameters. Grades update instantly in both Estimated and Projected views and are preserved for export.
 
 ## Features
 
@@ -19,13 +19,14 @@ The dynamic grading system allows teachers to customize how grades are calculate
    - Exponential Curve
    - Step-based grading
 
-### Configurable Parameters
+### Configurable Parameters (front-end)
 
-- **Maximum Score**: The highest score achieved in the class (e.g., 95% = 100%)
-- **Maximum Grade**: What the maximum score represents as a percentage
-- **Passing Score**: Minimum score required to pass
-- **Passing Grade**: Grade value for passing score (1.0-5.0 scale)
-- **Custom Formula**: For custom grading method
+- **Maximum Score (max_score)**: Upper cap for scaling (e.g., 95 caps 100 to 95)
+- **Passing Score (passing_score)**: Minimum percent required to pass
+- **Passing Grade (passing_grade)**: Grade value when at passing_score (linear/custom)
+- **Custom Formula (custom_formula)**: For custom grading method (inverse_linear, exponential, step)
+
+These parameters are saved per class section and loaded automatically.
 
 ## How to Use
 
@@ -53,7 +54,11 @@ When you select "Custom" or want to adjust parameters for other methods:
 
 ### 4. View Results
 
-The gradebook will immediately update to show grades using your selected method and parameters. The current settings are displayed in the header for reference.
+The gradebook updates immediately using the selected method and parameters. The current settings summary appears beside the Customize button.
+
+Two display modes are available:
+- **Estimated Grades**: Normalized average using only completed component weights (e.g., only Attendance+Quiz so far). Missing components are ignored in the denominator.
+- **Projected Final**: Uses full configured weights (e.g., Attendance/Quiz/Exam and Term weights). Missing components count as 0.
 
 ## Technical Implementation
 
@@ -62,16 +67,20 @@ The gradebook will immediately update to show grades using your selected method 
 - **GradingService**: Core service for grade calculations
 - **GradingController**: API endpoints for saving/loading settings
 - **ClassSection Model**: Stores grading settings as JSON
+- **AssessmentScore::calculatePercentageScore()**: Stores pass‑anchored scaled percentages where the per‑assessment `passing_score` maps to 75% and 0/max map to 0%/100% respectively.
+  - Below passing: scaled = 75 × (raw% / passing%)
+  - At/above passing: scaled = 75 + ((raw% − passing%) / (100 − passing%)) × 25
 
 ### Frontend Components
 
-- **Dynamic JavaScript**: Handles real-time grade conversion
+- **Dynamic JavaScript**: Handles real-time grade conversion (percentage↔linear/custom)
 - **Modal Interface**: For parameter customization
-- **Live Preview**: Shows grade calculations before applying
+- **Estimated/Projected Toggles**: Switches between views and recalculates displays
+- **Tooltips/Breakdowns**: Midterm/Final/Overall breakdowns reflect contributions by type/term.
 
 ### Database Schema
 
-The `class_sections` table now includes a `grading_settings` JSON column that stores:
+The `class_sections` table includes a `grading_settings` JSON column that stores:
 ```json
 {
   "grading_method": "linear",
@@ -89,6 +98,8 @@ The `class_sections` table now includes a `grading_settings` JSON column that st
 - `GET /grading/params` - Get default parameters for method
 - `POST /subjects/{subject}/classes/{classSection}/grading/settings` - Save settings
 - `GET /subjects/{subject}/classes/{classSection}/grading/settings` - Load settings
+
+When an assessment’s `max_score` or `passing_score` is updated, the server recalculates all related `percentage_score` values to keep gradebook and analytics consistent.
 
 ## Examples
 
@@ -120,9 +131,10 @@ The `class_sections` table now includes a `grading_settings` JSON column that st
 
 1. **Flexibility**: Teachers can adapt grading to their specific needs
 2. **Transparency**: Clear display of current grading method and parameters
-3. **Consistency**: Settings are saved per class section
+3. **Consistency**: Settings are saved per class section and percentages persist in DB
 4. **Real-time**: Instant updates when changing methods or parameters
-5. **User-friendly**: Intuitive modal interface for customization
+5. **Accurate scenarios**: Estimated vs Projected views match classroom workflows
+6. **User-friendly**: Intuitive modal interface for customization
 
 ## Future Enhancements
 

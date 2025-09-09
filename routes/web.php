@@ -667,14 +667,28 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
     foreach ($midtermAssessmentTypes as $assessmentType) {
         $assessments['midterm'][$assessmentType->id] = [
             'type' => $assessmentType,
-            'assessments' => $assessmentType->assessments()->where('term', 'midterm')->orderBy('order')->get()
+            'assessments' => $assessmentType->assessments()
+                ->where('term', 'midterm')
+                ->where(function ($q) use ($classSection) {
+                    $q->whereNull('class_section_id')
+                      ->orWhere('class_section_id', $classSection->id);
+                })
+                ->orderBy('order')
+                ->get()
         ];
     }
     
     foreach ($finalAssessmentTypes as $assessmentType) {
         $assessments['final'][$assessmentType->id] = [
             'type' => $assessmentType,
-            'assessments' => $assessmentType->assessments()->where('term', 'final')->orderBy('order')->get()
+            'assessments' => $assessmentType->assessments()
+                ->where('term', 'final')
+                ->where(function ($q) use ($classSection) {
+                    $q->whereNull('class_section_id')
+                      ->orWhere('class_section_id', $classSection->id);
+                })
+                ->orderBy('order')
+                ->get()
         ];
     }
     
@@ -694,13 +708,24 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
             $availableWeight = 0;
             
             foreach ($midtermAssessmentTypes as $assessmentType) {
-                // Get all assessments for this type, regardless of whether student has scores
-                $allAssessments = $assessmentType->assessments;
+                // Get assessments for this class (or shared) for this type
+                $allAssessments = $assessmentType->assessments()
+                    ->where('term', 'midterm')
+                    ->where(function ($q) use ($classSection) {
+                        $q->whereNull('class_section_id')
+                          ->orWhere('class_section_id', $classSection->id);
+                    })
+                    ->orderBy('order')
+                    ->get();
                 
                 if ($allAssessments->count() > 0) {
                     $assessmentScores = $student->assessmentScores()
-                        ->whereHas('assessment', function($query) use ($assessmentType) {
-                            $query->where('assessment_type_id', $assessmentType->id);
+                        ->whereHas('assessment', function($query) use ($assessmentType, $classSection) {
+                            $query->where('assessment_type_id', $assessmentType->id)
+                                  ->where(function ($q) use ($classSection) {
+                                      $q->whereNull('class_section_id')
+                                        ->orWhere('class_section_id', $classSection->id);
+                                  });
                         })
                         ->with('assessment')
                         ->get();
@@ -751,13 +776,24 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
             $availableWeight = 0;
             
             foreach ($finalAssessmentTypes as $assessmentType) {
-                // Get all assessments for this type, regardless of whether student has scores
-                $allAssessments = $assessmentType->assessments;
+                // Get assessments for this class (or shared) for this type
+                $allAssessments = $assessmentType->assessments()
+                    ->where('term', 'final')
+                    ->where(function ($q) use ($classSection) {
+                        $q->whereNull('class_section_id')
+                          ->orWhere('class_section_id', $classSection->id);
+                    })
+                    ->orderBy('order')
+                    ->get();
                 
                 if ($allAssessments->count() > 0) {
                     $assessmentScores = $student->assessmentScores()
-                        ->whereHas('assessment', function($query) use ($assessmentType) {
-                            $query->where('assessment_type_id', $assessmentType->id);
+                        ->whereHas('assessment', function($query) use ($assessmentType, $classSection) {
+                            $query->where('assessment_type_id', $assessmentType->id)
+                                  ->where(function ($q) use ($classSection) {
+                                      $q->whereNull('class_section_id')
+                                        ->orWhere('class_section_id', $classSection->id);
+                                  });
                         })
                         ->with('assessment')
                         ->get();

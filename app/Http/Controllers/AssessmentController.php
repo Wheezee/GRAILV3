@@ -30,6 +30,10 @@ class AssessmentController extends Controller
 
         $assessments = $assessmentType->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->orderBy('order')
             ->get();
 
@@ -49,11 +53,16 @@ class AssessmentController extends Controller
                 'description' => 'Attendance tracking for ' . ucfirst($term) . ' term',
                 'order' => 1,
                 'term' => $term,
+                'class_section_id' => $classSection->id,
             ]);
             
             // Refresh the assessments collection
             $assessments = $assessmentType->assessments()
                 ->where('term', $term)
+                ->where(function ($q) use ($classSection) {
+                    $q->whereNull('class_section_id')
+                      ->orWhere('class_section_id', $classSection->id);
+                })
                 ->orderBy('order')
                 ->get();
         }
@@ -102,8 +111,15 @@ class AssessmentController extends Controller
             'warning_score' => $request->warning_score,
             'due_date' => $request->due_date,
             'description' => $request->description,
-            'order' => $assessmentType->assessments()->where('term', $term)->count() + 1,
+            'order' => $assessmentType->assessments()
+                ->where('term', $term)
+                ->where(function ($q) use ($classSection) {
+                    $q->whereNull('class_section_id')
+                      ->orWhere('class_section_id', $classSection->id);
+                })
+                ->count() + 1,
             'term' => $term,
+            'class_section_id' => $classSection->id,
         ]);
 
         return back()->with('success', 'Assessment created successfully!');
@@ -161,6 +177,10 @@ class AssessmentController extends Controller
             $assessment = $assessmentType->assessments()
                 ->where('id', $assessmentId)
                 ->where('term', $term)
+                ->where(function ($q) use ($classSection) {
+                    $q->whereNull('class_section_id')
+                      ->orWhere('class_section_id', $classSection->id);
+                })
                 ->first();
 
             if (!$assessment) {
@@ -271,6 +291,10 @@ class AssessmentController extends Controller
             ->findOrFail($assessmentTypeId)
             ->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->findOrFail($assessmentId);
 
         $assessment->update([
@@ -334,6 +358,10 @@ class AssessmentController extends Controller
 
         $assessments = $assessmentType->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->orderBy('order')
             ->get();
 
@@ -366,6 +394,10 @@ class AssessmentController extends Controller
             ->findOrFail($assessmentTypeId)
             ->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->findOrFail($assessmentId);
 
         // Check if quiz already exists
@@ -408,6 +440,10 @@ class AssessmentController extends Controller
             ->findOrFail($assessmentTypeId)
             ->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->findOrFail($assessmentId);
 
         // Enable quiz mode and generate unique URL
@@ -465,6 +501,10 @@ class AssessmentController extends Controller
             ->findOrFail($assessmentTypeId)
             ->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->findOrFail($assessmentId);
 
         if (!$assessment->is_quiz) {
@@ -516,6 +556,10 @@ class AssessmentController extends Controller
             ->findOrFail($assessmentTypeId)
             ->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->findOrFail($assessmentId);
 
         if (!$assessment->is_quiz) {
@@ -586,6 +630,10 @@ class AssessmentController extends Controller
             ->findOrFail($assessmentTypeId)
             ->assessments()
             ->where('term', $term)
+            ->where(function ($q) use ($classSection) {
+                $q->whereNull('class_section_id')
+                  ->orWhere('class_section_id', $classSection->id);
+            })
             ->findOrFail($assessmentId);
 
         if (!$assessment->is_quiz) {

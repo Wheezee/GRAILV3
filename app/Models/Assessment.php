@@ -23,7 +23,8 @@ class Assessment extends Model
         'unique_url',
         'qr_code_enabled',
         'auto_grade',
-        'expires_at'
+        'expires_at',
+        'class_section_id'
     ];
 
     protected $casts = [
