@@ -740,9 +740,8 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
                                 ? (float)$score->percentage_score
                                 : ($assessment->max_score > 0 ? ($score->score / $assessment->max_score) * 100 : 0);
                             $typeGrades[] = $percent;
-                        } else {
-                            $typeGrades[] = 0; // missing counts as 0%
                         }
+                        // Skip unscored assessments for Estimated view
                     }
                     
                     $midtermGrades[$assessmentType->id] = $typeGrades;
@@ -807,8 +806,6 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
                                 ? (float)$score->percentage_score
                                 : ($assessment->max_score > 0 ? ($score->score / $assessment->max_score) * 100 : 0);
                             $typeGrades[] = $percent;
-                        } else {
-                            $typeGrades[] = 0; // missing counts as 0%
                         }
                     }
                     
@@ -836,15 +833,20 @@ Route::get('/subjects/{subject}/classes/{classSection}/gradebook', function ($su
             }
         }
         
-        // Calculate overall grade using subject weights even if one term is missing
+        // Calculate overall grade: normalize by active term weights (ignore missing term)
         if ($gradingStructure && ($student->midterm_grade !== null || $student->final_grade !== null)) {
-            $midtermWeight = $gradingStructure->midterm_weight / 100;
-            $finalWeight = $gradingStructure->final_weight / 100;
-            
-            $mid = $student->midterm_grade !== null ? $student->midterm_grade : 0;
-            $fin = $student->final_grade !== null ? $student->final_grade : 0;
-            
-            $student->overall_grade = round(($mid * $midtermWeight) + ($fin * $finalWeight), 1);
+            $midtermWeightPct = (float) $gradingStructure->midterm_weight;
+            $finalWeightPct = (float) $gradingStructure->final_weight;
+
+            $mid = $student->midterm_grade;
+            $fin = $student->final_grade;
+
+            $weightedSum = 0.0;
+            $activeWeight = 0.0;
+            if ($mid !== null) { $weightedSum += $mid * $midtermWeightPct; $activeWeight += $midtermWeightPct; }
+            if ($fin !== null) { $weightedSum += $fin * $finalWeightPct; $activeWeight += $finalWeightPct; }
+
+            $student->overall_grade = $activeWeight > 0 ? round($weightedSum / $activeWeight, 1) : null;
         }
     }
     

@@ -237,16 +237,13 @@ class GradebookExportController extends Controller
                 }
             }
             
-            // Calculate overall grade using subject weights (same logic as gradebook table)
-            if ($student->midterm_grade !== null && $student->final_grade !== null && $gradingStructure) {
-                $midtermWeight = $gradingStructure->midterm_weight / 100;
-                $finalWeight = $gradingStructure->final_weight / 100;
-                
-                $student->overall_grade = round(
-                    ($student->midterm_grade * $midtermWeight) + 
-                    ($student->final_grade * $finalWeight), 
-                    1
-                );
+            // Calculate overall grade using full term weights (missing term counts as 0)
+            if ($gradingStructure) {
+                $midtermWeight = ((float) $gradingStructure->midterm_weight) / 100.0;
+                $finalWeight = ((float) $gradingStructure->final_weight) / 100.0;
+                $mid = $student->midterm_grade ?? 0.0;
+                $fin = $student->final_grade ?? 0.0;
+                $student->overall_grade = round(($mid * $midtermWeight) + ($fin * $finalWeight), 1);
             }
             
             // Apply grading mode transformations

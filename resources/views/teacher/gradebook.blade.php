@@ -116,6 +116,7 @@
       <input type="hidden" name="format" id="exportFormat" value="">
       <input type="hidden" name="grading_mode" id="exportGradingMode" value="">
       <input type="hidden" name="grading_settings" id="exportGradingSettings" value="">
+      <input type="hidden" name="export_view" id="exportView" value="estimated">
       
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Grading Mode:</label>
@@ -315,7 +316,7 @@
           @endphp
           @if($assessmentList->count() > 0)
             @foreach($assessmentList as $assessment)
-              <th class="px-2 sm:px-4 py-2 text-center bg-blue-50 dark:bg-blue-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700">
+              <th class="px-2 sm:px-4 py-2 text-center bg-blue-50 dark:bg-blue-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700 assess-col" data-term="midterm" data-type="{{ trim($assessmentType->name) }}">
                 <a href="{{ route('assessments.index', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id, 'term' => 'midterm', 'assessmentType' => $assessmentType->id]) }}" 
                    class="text-blue-600 dark:text-blue-400 hover:underline text-xs">
                   <span class="hidden sm:inline">{{ $assessment->name }}</span>
@@ -338,7 +339,7 @@
           @endphp
           @if($assessmentList->count() > 0)
             @foreach($assessmentList as $assessment)
-              <th class="px-2 sm:px-4 py-2 text-center bg-green-50 dark:bg-green-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700">
+              <th class="px-2 sm:px-4 py-2 text-center bg-green-50 dark:bg-green-900/20 sticky top-20 z-10 border-b border-gray-200 dark:border-gray-700 assess-col" data-term="final" data-type="{{ trim($assessmentType->name) }}">
                 <a href="{{ route('assessments.index', ['subject' => $classSection->subject->id, 'classSection' => $classSection->id, 'term' => 'final', 'assessmentType' => $assessmentType->id]) }}" 
                    class="text-green-600 dark:text-green-400 hover:underline text-xs">
                   <span class="hidden sm:inline">{{ $assessment->name }}</span>
@@ -449,11 +450,13 @@
           <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->midterm_grade !== null)
               @php
-                // Calculate midterm breakdown
+                // Calculate midterm breakdown with scaling info (Estimated view)
                 $midtermBreakdown = [];
+                $midtermActiveWeight = 0;
                 foreach($midtermAssessmentTypes as $type) {
                   $assessmentList = $assessments['midterm'][$type->id]['assessments'];
                   if($assessmentList->count() > 0) {
+                    $midtermActiveWeight += $type->weight;
                     $totalScore = 0;
                     $totalMax = 0;
                     foreach($assessmentList as $assessment) {
@@ -474,9 +477,10 @@
                     $midtermBreakdown[] = $type->name . ' (0.0 pts)';
                   }
                 }
-                $breakdownText = 'Midterm Breakdown: ' . implode(', ', $midtermBreakdown);
+                $midtermScale = $midtermActiveWeight > 0 ? (100 / $midtermActiveWeight) : 0;
+                $breakdownText = 'Midterm Breakdown: ' . implode(', ', $midtermBreakdown) . ' | Active weights: ' . number_format($midtermActiveWeight, 1) . '% (×' . number_format($midtermScale, 2) . ')';
               @endphp
-              <span class="grade-display text-lg text-blue-600 dark:text-blue-400" data-grade="{{ $student->midterm_grade }}" data-type="percentage" title="{{ $breakdownText }}">
+              <span class="grade-display text-lg text-blue-600 dark:text-blue-400" data-grade="{{ $student->midterm_grade }}" data-type="percentage" data-term="midterm" title="{{ $breakdownText }}">
                 {{ $student->midterm_grade }}%
               </span>
             @else
@@ -488,11 +492,13 @@
           <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->final_grade !== null)
               @php
-                // Calculate final breakdown
+                // Calculate final breakdown with scaling info (Estimated view)
                 $finalBreakdown = [];
+                $finalActiveWeight = 0;
                 foreach($finalAssessmentTypes as $type) {
                   $assessmentList = $assessments['final'][$type->id]['assessments'];
                   if($assessmentList->count() > 0) {
+                    $finalActiveWeight += $type->weight;
                     $totalScore = 0;
                     $totalMax = 0;
                     foreach($assessmentList as $assessment) {
@@ -513,9 +519,10 @@
                     $finalBreakdown[] = $type->name . ' (0.0 pts)';
                   }
                 }
-                $breakdownText = 'Final Breakdown: ' . implode(', ', $finalBreakdown);
+                $finalScale = $finalActiveWeight > 0 ? (100 / $finalActiveWeight) : 0;
+                $breakdownText = 'Final Breakdown: ' . implode(', ', $finalBreakdown) . ' | Active weights: ' . number_format($finalActiveWeight, 1) . '% (×' . number_format($finalScale, 2) . ')';
               @endphp
-              <span class="grade-display text-lg text-green-600 dark:text-green-400" data-grade="{{ $student->final_grade }}" data-type="percentage" title="{{ $breakdownText }}">
+              <span class="grade-display text-lg text-green-600 dark:text-green-400" data-grade="{{ $student->final_grade }}" data-type="percentage" data-term="final" title="{{ $breakdownText }}">
                 {{ $student->final_grade }}%
               </span>
             @else
@@ -544,7 +551,7 @@
                 }
                 $breakdownText = 'Overall Breakdown: ' . implode(', ', $overallBreakdown);
               @endphp
-              <span class="grade-display text-lg font-bold" data-grade="{{ $student->overall_grade }}" data-type="percentage" title="{{ $breakdownText }}">
+              <span class="grade-display text-lg font-bold" data-grade="{{ $student->overall_grade }}" data-type="percentage" data-term="overall" title="{{ $breakdownText }}">
                 {{ $student->overall_grade }}%
               </span>
             @else
@@ -619,11 +626,14 @@ function prepareExport(format) {
   // Get current grading mode and settings
   const gradingMode = document.getElementById('grading_mode').value;
   const gradingSettings = getCurrentGradingSettings();
+  const view = (typeof currentGradeView !== 'undefined' && currentGradeView === 'projected') ? 'projected' : 'estimated';
   
   // Update hidden inputs
   document.getElementById('exportFormat').value = format;
   document.getElementById('exportGradingMode').value = gradingMode;
   document.getElementById('exportGradingSettings').value = JSON.stringify(gradingSettings);
+  const ev = document.getElementById('exportView');
+  if (ev) ev.value = view;
   
   // Update display
   document.getElementById('exportModeDisplay').textContent = getGradingModeDisplayName(gradingMode);
@@ -1168,8 +1178,8 @@ function recalculateGrades() {
         const converted = convertGrade(projectedGrade, gradingMode, gradingParams);
         display.textContent = converted;
         display.dataset.type = gradingMode;
-        const colorClass = getGradeColor(converted, gradingMode) || 'text-red-600';
-        display.className = `grade-display text-lg font-bold ${colorClass}`;
+        const colorClass = getGradeColor(converted, gradingMode) || '';
+        display.className = `grade-display text-lg font-bold ${colorClass}`.trim();
         display.title = getProjectedBreakdownText(display);
       }
     }
@@ -1223,67 +1233,66 @@ function calculateAccurateProjectedGrade(gradeDisplay) {
   return originalGrade.toFixed(1);
 }
 
-// Calculate projected midterm grade based on actual assessment data
+// -------- Modular projected grading (no hard-coded slots) --------
+let columnTypeMapCache = null; // { midterm: string[], final: string[] }
+
+function buildTypeColumnMap() {
+  if (columnTypeMapCache) return columnTypeMapCache;
+  const headers = document.querySelectorAll('#gradebookTable thead th.assess-col');
+  const midterm = [];
+  const fin = [];
+  headers.forEach(h => {
+    const term = h.getAttribute('data-term');
+    const type = h.getAttribute('data-type');
+    if (term === 'midterm') midterm.push(type);
+    if (term === 'final') fin.push(type);
+  });
+  columnTypeMapCache = { midterm, final: fin };
+  return columnTypeMapCache;
+}
+
+function getColumnPercentsByType(studentRow, term) {
+  const map = buildTypeColumnMap();
+  const types = term === 'final' ? map.final : map.midterm;
+  const allCells = Array.from(studentRow.querySelectorAll('td'));
+  const scoreCells = allCells.slice(2, -3); // data cells only
+  const result = {};
+  for (let i = 0; i < types.length && i < scoreCells.length; i++) {
+    const typeName = types[i];
+    const pct = extractPercentFromCell(scoreCells[i]);
+    if (!result[typeName]) result[typeName] = [];
+    result[typeName].push(isNaN(pct) ? 0 : pct);
+  }
+  return result; // { TypeName: [pct, pct, ...] }
+}
+
+function weightedAverageFromTypeBuckets(buckets, weights) {
+  let weightedSum = 0;
+  let activeWeight = 0;
+  Object.keys(buckets).forEach((typeName) => {
+    const w = typeof weights[typeName] === 'number' ? weights[typeName] : 0;
+    if (w <= 0) return;
+    const values = buckets[typeName];
+    if (!values || values.length === 0) return;
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    weightedSum += avg * (w / 100);
+    activeWeight += w;
+  });
+  // Do not rescale; sum of (avg * weight%) already yields percentage
+  return activeWeight > 0 ? weightedSum : 0;
+}
+
 function calculateMidtermProjectedGrade(studentRow) {
-  // Get assessment data from the student row
-  const cells = studentRow.querySelectorAll('td');
-  
-  // Skip first 2 columns (student ID and name)
-  let attendanceScore = 0;
-  let quiz1Score = 0;
-  let quiz2Score = 0;
-  let examScore = 0;
-  
-  // Parse assessment scores (assuming order: attendance, quiz1, quiz2, exam)
-  // This is a simplified approach - in a real implementation, we'd parse the headers
-  const scoreCells = Array.from(cells).slice(2, -3); // Skip first 2 and last 3 columns
-  
-  if (scoreCells.length >= 1) {
-    const p = extractPercentFromCell(scoreCells[0]);
-    if (!isNaN(p)) attendanceScore = p;
-  }
-  
-  if (scoreCells.length >= 2) {
-    const p = extractPercentFromCell(scoreCells[1]);
-    if (!isNaN(p)) quiz1Score = p;
-  }
-  
-  if (scoreCells.length >= 3) {
-    const p = extractPercentFromCell(scoreCells[2]);
-    if (!isNaN(p)) quiz2Score = p;
-  }
-  
-  if (scoreCells.length >= 4) {
-    const p = extractPercentFromCell(scoreCells[3]);
-    if (!isNaN(p)) examScore = p;
-  }
-  
-  // Values are already percentages extracted from the cells
-  const attendancePercent = attendanceScore;
-  const quiz1Percent = quiz1Score;
-  const quiz2Percent = quiz2Score;
-  const examPercent = examScore;
-  
-  // Use backend-provided weights when available (fallback 20/40/40)
-  const attendanceWeight = typeof midtermTypeWeights['Attendance'] === 'number' ? midtermTypeWeights['Attendance'] : 20;
-  const quizWeight = typeof midtermTypeWeights['Quiz'] === 'number' ? midtermTypeWeights['Quiz'] : 40;
-  const examWeight = typeof midtermTypeWeights['Exam'] === 'number' ? midtermTypeWeights['Exam'] : 40;
-  
-  // For quizzes, average the two quiz scores
-  const quizAverage = (quiz1Percent + quiz2Percent) / 2;
-  
-  // Calculate projected grade (missing assessments count as 0%)
-  const projectedGrade = (attendancePercent * attendanceWeight / 100) + 
-                        (quizAverage * quizWeight / 100) + 
-                        (examPercent * examWeight / 100);
-  
-  return Math.max(0, projectedGrade).toFixed(1);
+  const buckets = getColumnPercentsByType(studentRow, 'midterm');
+  const grade = weightedAverageFromTypeBuckets(buckets, midtermTypeWeights);
+  return Math.max(0, grade).toFixed(1);
 }
 
 // Calculate projected final grade
 function calculateFinalProjectedGrade(studentRow) {
-  // For now, return 0 since final has no assessments
-  return '0.0';
+  const buckets = getColumnPercentsByType(studentRow, 'final');
+  const grade = weightedAverageFromTypeBuckets(buckets, finalTypeWeights);
+  return Math.max(0, grade).toFixed(1);
 }
 
 // Calculate projected overall grade
@@ -1369,32 +1378,106 @@ function getProjectedBreakdownText(gradeDisplay) {
   const type = getGradeCellType(gradeDisplay);
 
   if (type === 'midterm') {
-    const { attendancePercent, quiz1Percent, quiz2Percent, examPercent } = parseProjectedScoreCells(studentRow);
-    const attendanceWeight = 20;
-    const quizWeight = 40;
-    const examWeight = 40;
-    const quizAvg = (isNaN(quiz1Percent) ? 0 : quiz1Percent) + (isNaN(quiz2Percent) ? 0 : quiz2Percent);
-    const quizAvgPercent = quizAvg / 2;
-
-    const attPts = (attendancePercent * attendanceWeight) / 100;
-    const quizPts = (quizAvgPercent * quizWeight) / 100;
-    const examPts = (examPercent * examWeight) / 100;
-
-    return `Projected Midterm: Att ${attendancePercent.toFixed(1)}% (${attPts.toFixed(1)} pts), Quiz avg ${quizAvgPercent.toFixed(1)}% (${quizPts.toFixed(1)} pts), Exam ${examPercent.toFixed(1)}% (${examPts.toFixed(1)} pts)`;
+    const buckets = getColumnPercentsByType(studentRow, 'midterm');
+    const parts = [];
+    Object.keys(buckets).forEach((name) => {
+      const avg = buckets[name].length > 0 ? (buckets[name].reduce((a,b)=>a+b,0) / buckets[name].length) : 0;
+      const w = typeof midtermTypeWeights[name] === 'number' ? midtermTypeWeights[name] : 0;
+      const pts = (avg * w) / 100;
+      parts.push(`${name} ${avg.toFixed(1)}% (${pts.toFixed(1)} pts)`);
+    });
+    return `Projected Midterm: ${parts.join(', ')}`;
   }
 
   if (type === 'final') {
-    return 'Projected Final: No final assessments yet';
+    const buckets = getColumnPercentsByType(studentRow, 'final');
+    const parts = [];
+    Object.keys(buckets).forEach((name) => {
+      const avg = buckets[name].length > 0 ? (buckets[name].reduce((a,b)=>a+b,0) / buckets[name].length) : 0;
+      const w = typeof finalTypeWeights[name] === 'number' ? finalTypeWeights[name] : 0;
+      const pts = (avg * w) / 100;
+      parts.push(`${name} ${avg.toFixed(1)}% (${pts.toFixed(1)} pts)`);
+    });
+    if (parts.length === 0) {
+      return 'Projected Final: No assessments yet';
+    }
+    return `Projected Final: ${parts.join(', ')}`;
   }
 
   // overall
   const midtermProjected = parseFloat(calculateMidtermProjectedGrade(studentRow));
   const finalProjected = parseFloat(calculateFinalProjectedGrade(studentRow));
-  const midtermWeight = 100;
-  const finalWeight = 0;
-  const midPts = (midtermProjected * midtermWeight) / 100;
-  const finPts = (finalProjected * finalWeight) / 100;
-  return `Projected Overall: Midterm ${midtermProjected.toFixed(1)}% (${midPts.toFixed(1)} pts, ${midtermWeight}%), Final ${finalProjected.toFixed(1)}% (${finPts.toFixed(1)} pts, ${finalWeight}%)`;
+  const mw = termSectionWeights.midterm ?? 50;
+  const fw = termSectionWeights.final ?? 50;
+
+  // Only use weights for terms that actually have columns
+  const map = buildTypeColumnMap();
+  const hasMid = (map.midterm?.length || 0) > 0;
+  const hasFin = (map.final?.length || 0) > 0;
+  const midW = hasMid ? mw : 0;
+  const finW = hasFin ? fw : 0;
+  const activeW = midW + finW;
+
+  let midPts = 0, finPts = 0;
+  if (activeW > 0) {
+    midPts = hasMid ? (midtermProjected * midW) / activeW : 0;
+    finPts = hasFin ? (finalProjected * finW) / activeW : 0;
+  }
+  return `Projected Overall: Midterm ${midtermProjected.toFixed(1)}% (${midPts.toFixed(1)} pts, ${midW || 0}%), Final ${finalProjected.toFixed(1)}% (${finPts.toFixed(1)} pts, ${finW || 0}%)`;
 }
+</script>
+<style>
+.tooltip-card{position:absolute;z-index:50;max-width:260px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);padding:.5rem .75rem;display:none;font-size:.75rem}
+.tooltip-card .heading{font-weight:600;color:#f9fafb;margin-bottom:.25rem}
+.tooltip-card .muted{color:#9ca3af}
+</style>
+<div id="grade-tooltip" class="tooltip-card"></div>
+<script>
+const tooltipEl=document.getElementById('grade-tooltip');
+function showTooltip(target,html){tooltipEl.innerHTML=html;tooltipEl.style.display='block';const rect=target.getBoundingClientRect();const top=window.scrollY+rect.top- tooltipEl.offsetHeight - 8;const left=Math.min(window.scrollX+rect.left, window.scrollX+window.innerWidth-tooltipEl.offsetWidth-8);tooltipEl.style.top=top+'px';tooltipEl.style.left=left+'px';}
+function hideTooltip(){tooltipEl.style.display='none';}
+
+function formatEstimatedTooltip(studentRow, term){
+  // Use only types that have visible assessment columns for this term
+  const map = buildTypeColumnMap();
+  const presentTypes = term==='final' ? map.final : map.midterm;
+  const weights = term==='final' ? @json($finalAssessmentTypes->pluck('weight','name')) : @json($midtermAssessmentTypes->pluck('weight','name'));
+  // Unique type names
+  const typeSet = Array.from(new Set(presentTypes));
+  let activeW = 0; typeSet.forEach(n=>{activeW += Number(weights[n]||0)});
+  const S = activeW>0 ? (100/activeW) : 0;
+  const items = typeSet.map(n=>`${n}: ${(Number(weights[n]||0)*S).toFixed(4)}%`).join('<br>');
+  return `<div class="heading">Estimated (Scaled to 100%)</div>
+  <div>Active weights: <strong>${activeW.toFixed(0)}</strong></div>
+  <div>Scaling: <strong>×${S.toFixed(2)}</strong></div>
+  <div class="muted">Scaled weights</div>${items || '<span class=\"muted\">No active types</span>'}`;
+}
+
+function formatProjectedTooltip(studentRow, term){
+  const buckets = getColumnPercentsByType(studentRow, term);
+  const weights = term==='final' ? finalTypeWeights : midtermTypeWeights;
+  const rows = Object.keys(buckets).map(n=>{
+    const avg = buckets[n].length? (buckets[n].reduce((a,b)=>a+b,0)/buckets[n].length):0;
+    const w = typeof weights[n]==='number'?weights[n]:0;
+    const pts = (avg*w)/100;
+    return `${n}: avg ${avg.toFixed(2)}% × ${w.toFixed(2)}% = ${pts.toFixed(2)} pts`;
+  }).join('<br>');
+  return `<div class="heading">Projected (No scaling)</div>${rows||'<span class="muted">No assessments yet</span>'}`;
+}
+
+document.addEventListener('mouseover', (e)=>{
+  const el = e.target.closest('.grade-display');
+  if(!el) return;
+  const term = el.getAttribute('data-term');
+  const tr = el.closest('tr');
+  let html='';
+  if(currentGradeView==='estimated'){
+    if(term==='midterm' || term==='final') html = formatEstimatedTooltip(tr, term);
+  } else {
+    if(term==='midterm' || term==='final') html = formatProjectedTooltip(tr, term);
+  }
+  if(html){ showTooltip(el, html); }
+});
+document.addEventListener('mouseout',(e)=>{ if(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#grade-tooltip')) return; hideTooltip(); });
 </script>
 @endsection 
