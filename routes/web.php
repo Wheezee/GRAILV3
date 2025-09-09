@@ -1477,6 +1477,14 @@ Route::prefix('subjects/{subject}/classes/{classSection}/{term}/assessments/{ass
     Route::delete('/date', [\App\Http\Controllers\AttendanceController::class, 'deleteDate'])->name('attendance.delete-date');
 });
 
+// Subject Calendar Notes (per-teacher, per-subject)
+Route::prefix('subjects/{subject}/calendar-notes')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SubjectCalendarNoteController::class, 'index'])->name('subject-notes.index');
+    Route::get('{date}', [\App\Http\Controllers\SubjectCalendarNoteController::class, 'show'])->name('subject-notes.show');
+    Route::post('/', [\App\Http\Controllers\SubjectCalendarNoteController::class, 'upsert'])->name('subject-notes.upsert');
+    Route::delete('{date}', [\App\Http\Controllers\SubjectCalendarNoteController::class, 'destroy'])->name('subject-notes.destroy');
+});
+
 // Student assessment routes (no authentication required)
 Route::prefix('assessment')->name('student.assessment.')->group(function () {
     Route::get('{unique_url}/access', [\App\Http\Controllers\StudentAssessmentController::class, 'showAccessForm'])->name('access');
