@@ -728,6 +728,7 @@ let gradingParams = {
 };
 
 // Weights provided by backend for reliable calculations
+const isAllInOne = {{ $isAllInOne ? 'true' : 'false' }};
 const midtermTypeWeights = {
   @foreach($midtermAssessmentTypes as $type)
     '{{ trim($type->name) }}': {{ (float)$type->weight }},
@@ -1285,7 +1286,9 @@ function getColumnPercentsByType(studentRow, term) {
   const map = buildTypeColumnMap();
   const types = term === 'final' ? map.final : map.midterm;
   const allCells = Array.from(studentRow.querySelectorAll('td'));
-  const scoreCells = allCells.slice(2, -3); // data cells only
+  // data cells only; for All-in-one, only the last column is Overall
+  const sliceEnd = isAllInOne ? -1 : -3;
+  const scoreCells = allCells.slice(2, sliceEnd);
   const result = {};
   for (let i = 0; i < types.length && i < scoreCells.length; i++) {
     const typeName = types[i];
@@ -1396,6 +1399,9 @@ function getGradeCellType(gradeDisplay) {
   const gradeCell = gradeDisplay.closest('td');
   const cellIndex = Array.from(gradeCell.parentElement.children).indexOf(gradeCell);
   const totalColumns = gradeCell.parentElement.children.length;
+  if (isAllInOne) {
+    return 'overall';
+  }
   if (cellIndex === totalColumns - 3) return 'midterm';
   if (cellIndex === totalColumns - 2) return 'final';
   return 'overall';
