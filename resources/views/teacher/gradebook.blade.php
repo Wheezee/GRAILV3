@@ -1,5 +1,52 @@
 @extends('layouts.app')
 
+<style>
+/* Make entire row red when failing */
+tr.failing-row,
+tr.failing-row td,
+tr.failing-row td div,
+tr.failing-row td span,
+tr.failing-row * {
+  color: #dc2626 !important; /* text-red-600 */
+}
+
+.dark tr.failing-row,
+.dark tr.failing-row td,
+.dark tr.failing-row td div,
+.dark tr.failing-row td span,
+.dark tr.failing-row * {
+  color: #f87171 !important; /* text-red-400 */
+}
+
+/* Keep warning icons yellow even in failing rows */
+tr.failing-row .text-yellow-600,
+.dark tr.failing-row .text-yellow-400 {
+  color: #d97706 !important; /* text-yellow-600 */
+}
+
+/* Kill Tailwind text color utilities inside failing rows */
+tr.failing-row [class*="text-blue-"],
+tr.failing-row [class*="text-green-"],
+tr.failing-row [class*="text-gray-"],
+tr.failing-row [class*="text-slate-"],
+tr.failing-row [class*="dark:text-"],
+.dark tr.failing-row [class*="text-blue-"],
+.dark tr.failing-row [class*="text-green-"],
+.dark tr.failing-row [class*="text-gray-"],
+.dark tr.failing-row [class*="text-slate-"],
+.dark tr.failing-row [class*="dark:text-"] {
+  color: inherit !important;
+}
+
+/* Also force sticky identifier cells to adopt failing color */
+tr.failing-row td.sticky,
+tr.failing-row td.sticky * {
+  color: inherit !important;
+}
+</style>
+
+<!-- (Removed debug: global red color) -->
+
 @section('content')
 <!-- Breadcrumbs -->
 <nav class="mb-6" aria-label="Breadcrumb">
@@ -385,8 +432,10 @@
       @forelse($students as $student)
         @php
           $isFailing = false; // Disable server-side red styling; handled via per-cell indicators
+          $overallGrade = $student->overall_grade;
+          $isFailingRow = $overallGrade !== null && $overallGrade <= 75;
         @endphp
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 {{ $isFailingRow ? 'failing-row' : '' }}" data-overall="{{ $overallGrade ?? '' }}">
           <td class="px-2 sm:px-6 py-4 bg-white dark:bg-gray-800 sticky left-0 z-10">
             <div class="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
               {{ $student->student_id }}
@@ -902,17 +951,25 @@ function updateGradeDisplay() {
       display.dataset.type = gradingMode;
       
       // Apply color coding (simplified)
-      const colorClass = getGradeColor(convertedGrade, gradingMode);
-      if (colorClass) {
-        display.className = `grade-display text-lg font-bold ${colorClass}`;
+      const isFailingRow = display.closest('tr')?.classList.contains('failing-row');
+      if (isFailingRow) {
+        // Force neutral class so row-level red styling can take over
+        display.className = 'grade-display text-lg font-bold';
       } else {
-        display.className = 'grade-display text-lg';
+        const colorClass = getGradeColor(convertedGrade, gradingMode);
+        if (colorClass) {
+          display.className = `grade-display text-lg font-bold ${colorClass}`;
+        } else {
+          display.className = 'grade-display text-lg';
+        }
       }
     }
   });
   
   // Update settings summary
   updateSettingsSummary();
+  // Re-evaluate failing rows after visual update
+  refreshFailingRowStyles();
 }
 
 function updateSettingsSummary() {
@@ -1146,6 +1203,21 @@ document.addEventListener('DOMContentLoaded', function() {
       display.setAttribute('data-original-title', display.title);
     }
   });
+
+  // Initial failing-row evaluation after content is ready
+  refreshFailingRowStyles();
+  // Re-run after a short delay to catch async DOM updates
+  setTimeout(refreshFailingRowStyles, 0);
+  setTimeout(refreshFailingRowStyles, 500);
+
+  // Observe table mutations to keep failing styles in sync
+  const table = document.getElementById('gradebookTable');
+  if (table && window.MutationObserver) {
+    const observer = new MutationObserver(() => {
+      refreshFailingRowStyles();
+    });
+    observer.observe(table, { childList: true, subtree: true, characterData: true });
+  }
 });
 
 // Simple toggle system
@@ -1193,11 +1265,16 @@ function recalculateGrades() {
         const converted = convertGrade(parseFloat(originalGrade), gradingMode, gradingParams);
         display.textContent = converted;
         display.dataset.type = gradingMode;
-        const colorClass = getGradeColor(converted, gradingMode);
-        if (colorClass) {
-          display.className = `grade-display text-lg font-bold ${colorClass}`;
+        const isFailingRow = display.closest('tr')?.classList.contains('failing-row');
+        if (isFailingRow) {
+          display.className = 'grade-display text-lg font-bold';
         } else {
-          display.className = 'grade-display text-lg';
+          const colorClass = getGradeColor(converted, gradingMode);
+          if (colorClass) {
+            display.className = `grade-display text-lg font-bold ${colorClass}`;
+          } else {
+            display.className = 'grade-display text-lg';
+          }
         }
         // Keep the original breakdown tooltip
         const originalTitle = display.getAttribute('data-original-title') || display.title;
@@ -1209,8 +1286,13 @@ function recalculateGrades() {
         const converted = convertGrade(projectedGrade, gradingMode, gradingParams);
         display.textContent = converted;
         display.dataset.type = gradingMode;
-        const colorClass = getGradeColor(converted, gradingMode) || '';
-        display.className = `grade-display text-lg font-bold ${colorClass}`.trim();
+        const isFailingRow = display.closest('tr')?.classList.contains('failing-row');
+        if (isFailingRow) {
+          display.className = 'grade-display text-lg font-bold';
+        } else {
+          const colorClass = getGradeColor(converted, gradingMode) || '';
+          display.className = `grade-display text-lg font-bold ${colorClass}`.trim();
+        }
         display.title = getProjectedBreakdownText(display);
       }
     }
@@ -1227,6 +1309,9 @@ function recalculateGrades() {
       statusDiv.parentNode.removeChild(statusDiv);
     }
   }, 3000);
+
+  // Re-evaluate failing rows after recalculation
+  refreshFailingRowStyles();
 }
 
 // Calculate accurate projected grade based on actual assessment data
@@ -1460,6 +1545,44 @@ function getProjectedBreakdownText(gradeDisplay) {
     finPts = hasFin ? (finalProjected * finW) / activeW : 0;
   }
   return `Projected Overall: Midterm ${midtermProjected.toFixed(1)}% (${midPts.toFixed(1)} pts, ${midW || 0}%), Final ${finalProjected.toFixed(1)}% (${finPts.toFixed(1)} pts, ${finW || 0}%)`;
+}
+
+// ----- Failing row handling (dynamic) -----
+function parsePercentFromText(text) {
+  if (!text) return NaN;
+  const m = String(text).match(/(\d+\.?\d*)%/);
+  return m ? parseFloat(m[1]) : NaN;
+}
+
+function isRowFailing(row) {
+  // Single source of truth: backend-provided original overall percentage
+  const dataOverall = row.getAttribute('data-overall');
+  const pct = parseFloat(dataOverall);
+  if (!isNaN(pct)) return pct <= 75;
+  // Fallbacks (should rarely occur)
+  const overallSpan = row.querySelector('.grade-display[data-term="overall"]');
+  if (overallSpan) {
+    const pct2 = parseFloat(overallSpan.dataset.grade);
+    if (!isNaN(pct2)) return pct2 <= 75;
+    const visiblePct = parsePercentFromText(overallSpan.textContent);
+    if (!isNaN(visiblePct)) return visiblePct <= 75;
+  }
+  return false;
+}
+
+function refreshFailingRowStyles() {
+  const rows = document.querySelectorAll('#gradebookTable tbody tr');
+  rows.forEach(row => {
+    if (isRowFailing(row)) {
+      row.classList.add('failing-row');
+      // Also neutralize any per-cell grade-display color classes in this row
+      row.querySelectorAll('.grade-display').forEach(el => {
+        el.className = 'grade-display text-lg font-bold';
+      });
+    } else {
+      row.classList.remove('failing-row');
+    }
+  });
 }
 </script>
 <style>
