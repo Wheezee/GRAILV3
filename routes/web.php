@@ -9,6 +9,18 @@ use App\Models\Subject;
 use App\Models\Student;
 use App\Http\Controllers\MLPredictionController;
 use App\Http\Controllers\GoogleAuthController;
+// Academic Year/Semester setter
+Route::post('/set-ays', function (Request $request) {
+    $validated = $request->validate([
+        'academic_year' => ['required','string','regex:/^\d{4}-\d{4}$/'],
+        'semester' => ['required','in:1,2,S'],
+    ]);
+    session([
+        'academic_year' => $validated['academic_year'],
+        'semester' => $validated['semester'],
+    ]);
+    return back();
+})->middleware('auth');
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -66,6 +78,17 @@ Route::post('/register', function (Request $request) {
 
 // Dashboard (protected)
 Route::get('/dashboard', function () {
+    // Initialize default AY/Sem on first authenticated load
+    if (!session()->has('academic_year') || !session()->has('semester')) {
+        $now = now();
+        $year = (int) $now->format('Y');
+        $month = (int) $now->format('n');
+        // Simple rule: AY starts in June. Adjust as needed.
+        $ayStart = $month >= 6 ? $year : $year - 1;
+        $defaultAy = $ayStart . '-' . ($ayStart + 1);
+        session(['academic_year' => session('academic_year', $defaultAy)]);
+        session(['semester' => session('semester', '1')]);
+    }
     $user = auth()->user();
     if ($user->isAdmin()) {
         return view('admin.dashboard');
@@ -160,6 +183,8 @@ Route::get('/subjects', function () {
               ->where('midterm_weight', 100)
               ->where('final_weight', 0);
         })
+        ->when(session('academic_year'), fn($q) => $q->where('academic_year', session('academic_year')))
+        ->when(session('semester'), fn($q) => $q->where('semester', session('semester')))
         ->orderBy('code')
         ->get();
     return view('teacher.subjects', compact('subjects'));
@@ -267,6 +292,8 @@ Route::post('/subjects', function (Request $request) {
         'title' => $validated['title'],
         'units' => $validated['units'],
         'teacher_id' => auth()->id(),
+        'academic_year' => session('academic_year'),
+        'semester' => session('semester'),
     ]);
     
     // Create grading structure
@@ -347,6 +374,8 @@ Route::get('/subjects/all-in-one', function () {
               ->where('midterm_weight', 100)
               ->where('final_weight', 0);
         })
+        ->when(session('academic_year'), fn($q) => $q->where('academic_year', session('academic_year')))
+        ->when(session('semester'), fn($q) => $q->where('semester', session('semester')))
         ->orderBy('code')
         ->get();
     return view('teacher.subjects-allinone', compact('subjects'));
@@ -389,6 +418,8 @@ Route::post('/subjects/all-in-one', function (Request $request) {
         'title' => $validated['title'],
         'units' => $validated['units'],
         'teacher_id' => auth()->id(),
+        'academic_year' => session('academic_year'),
+        'semester' => session('semester'),
     ]);
 
     // Create grading structure as all-in-one (encoded as custom 100/0)

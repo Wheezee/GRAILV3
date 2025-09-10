@@ -51,13 +51,41 @@
     </div>
     <!-- Top Bar -->
     <header class="flex items-center justify-between bg-white dark:bg-gray-800 px-6 py-4 shadow-md sticky top-0 z-30">
-      <button id="toggleSidebar" class="text-gray-700 dark:text-gray-100 hover:text-red-600 dark:hover:text-evsu focus:outline-none">
-        <i data-lucide="menu" class="w-6 h-6"></i>
-      </button>
-      <h1 class="text-xl font-bold tracking-wide text-red-700 dark:text-evsu">SmartGrade+</h1>
-      <button id="darkModeToggle" class="ml-4 text-gray-700 dark:text-gray-100 hover:text-red-600 dark:hover:text-evsu focus:outline-none" aria-label="Toggle dark mode" onclick="toggleDarkMode()">
-        <i id="darkModeIcon" data-lucide="sun" class="w-6 h-6"></i>
-      </button>
+      <div class="flex items-center gap-3">
+        <button id="toggleSidebar" class="text-gray-700 dark:text-gray-100 hover:text-red-600 dark:hover:text-evsu focus:outline-none">
+          <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+        <h1 class="text-xl font-bold tracking-wide text-red-700 dark:text-evsu">SmartGrade+</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- AY/Sem selector -->
+        <form id="aySemForm" method="POST" action="{{ url('/set-ays') }}" class="hidden sm:flex items-center gap-2">
+          @csrf
+          <select name="academic_year" id="aySelect" class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-100">
+            @php
+              $currentAy = session('academic_year');
+              $start = (int)date('Y') - 1;
+              $years = [];
+              for($i=$start; $i<=$start+4; $i++){ $years[] = $i.'-'.($i+1); }
+            @endphp
+            @foreach($years as $ay)
+              <option value="{{ $ay }}" {{ $currentAy===$ay ? 'selected' : '' }}>{{ $ay }}</option>
+            @endforeach
+          </select>
+          <select name="semester" id="semSelect" class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-100">
+            @php $currentSem = session('semester'); @endphp
+            <option value="1" {{ $currentSem==='1' ? 'selected' : '' }}>1st</option>
+            <option value="2" {{ $currentSem==='2' ? 'selected' : '' }}>2nd</option>
+            <option value="S" {{ $currentSem==='S' ? 'selected' : '' }}>Summer</option>
+          </select>
+        </form>
+        <button onclick="document.getElementById('aySemForm').submit()" title="Apply AY/Sem" class="text-gray-700 dark:text-gray-100 hover:text-red-600 dark:hover:text-evsu focus:outline-none hidden sm:block">
+          <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
+        </button>
+        <button id="darkModeToggle" class="ml-2 text-gray-700 dark:text-gray-100 hover:text-red-600 dark:hover:text-evsu focus:outline-none" aria-label="Toggle dark mode" onclick="toggleDarkMode()">
+          <i id="darkModeIcon" data-lucide="sun" class="w-6 h-6"></i>
+        </button>
+      </div>
     </header>
     <!-- Main Content -->
     <main class="p-6">
@@ -109,6 +137,18 @@
         html.classList.remove('dark');
         document.getElementById('darkModeIcon').setAttribute('data-lucide', 'moon');
       }
+      
+      // Auto-submit AY/Sem on change so filters apply immediately
+      document.addEventListener('DOMContentLoaded', function(){
+        const ay = document.getElementById('aySelect');
+        const sem = document.getElementById('semSelect');
+        const form = document.getElementById('aySemForm');
+        if(ay && sem && form){
+          const submit = () => { try { form.submit(); } catch(e) {} };
+          ay.addEventListener('change', submit);
+          sem.addEventListener('change', submit);
+        }
+      });
       if (window.applyLucideIcons) {
         window.applyLucideIcons();
       }

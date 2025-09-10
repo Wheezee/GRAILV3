@@ -15,6 +15,8 @@ class Subject extends Model
         'units',
         'schedule',
         'teacher_id',
+        'academic_year',
+        'semester',
     ];
 
     protected $casts = [

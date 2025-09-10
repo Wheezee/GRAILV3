@@ -45,7 +45,7 @@
 
 <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
   @forelse($subjects ?? [] as $subject)
-    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow" title="AY: {{ $subject->academic_year ?? '—' }} | Sem: {{ $subject->semester ?? '—' }}">
       <div class="flex items-start justify-between mb-4">
         <div>
           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $subject->code }}</h3>
@@ -74,12 +74,13 @@
       <div class="text-gray-400 dark:text-gray-500 mb-4">
         <i data-lucide="book-open-check" class="w-16 h-16 mx-auto"></i>
       </div>
-      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No All-in-one subjects yet</h3>
-      <p class="text-gray-500 dark:text-gray-400 mb-6">Create your first single-term subject</p>
-      <a href="{{ route('subjects.allinone.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No All-in-one subjects in this AY/Sem</h3>
+      <p class="text-gray-500 dark:text-gray-400 mb-2">Current filter:</p>
+      <p class="text-gray-500 dark:text-gray-400 mb-6">AY: {{ session('academic_year') ?? '—' }} | Sem: {{ session('semester') ?? '—' }}</p>
+      <button type="button" onclick="openAoiCreateModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
         <i data-lucide="plus" class="w-4 h-4"></i>
-        Add Your First All-in-one Subject
-      </a>
+        Add All-in-one Subject
+      </button>
     </div>
   @endforelse
 </div>
