@@ -154,7 +154,14 @@ Route::get('/subjects', function () {
     if (!auth()->user()->isTeacher()) {
         abort(403, 'Access denied. Teachers only.');
     }
-    $subjects = auth()->user()->subjects()->orderBy('code')->get();
+    $subjects = auth()->user()->subjects()
+        ->whereDoesntHave('gradingStructure', function($q) {
+            $q->where('type', 'custom')
+              ->where('midterm_weight', 100)
+              ->where('final_weight', 0);
+        })
+        ->orderBy('code')
+        ->get();
     return view('teacher.subjects', compact('subjects'));
 })->name('subjects.index')->middleware('auth');
 
@@ -328,6 +335,88 @@ Route::delete('/subjects/{id}', function ($id) {
     
     return redirect()->route('subjects.index')->with('success', 'Subject deleted successfully!');
 })->name('subjects.destroy')->middleware('auth');
+
+// All-in-one Subjects routes (single-term, teacher only)
+Route::get('/subjects/all-in-one', function () {
+    if (!auth()->user()->isTeacher()) {
+        abort(403, 'Access denied. Teachers only.');
+    }
+    $subjects = auth()->user()->subjects()
+        ->whereHas('gradingStructure', function($q) {
+            $q->where('type', 'custom')
+              ->where('midterm_weight', 100)
+              ->where('final_weight', 0);
+        })
+        ->orderBy('code')
+        ->get();
+    return view('teacher.subjects-allinone', compact('subjects'));
+})->name('subjects.allinone.index')->middleware('auth');
+
+Route::get('/subjects/all-in-one/create', function () {
+    if (!auth()->user()->isTeacher()) {
+        abort(403, 'Access denied. Teachers only.');
+    }
+    return view('teacher.subject-create-allinone');
+})->name('subjects.allinone.create')->middleware('auth');
+
+Route::post('/subjects/all-in-one', function (Request $request) {
+    if (!auth()->user()->isTeacher()) {
+        abort(403, 'Access denied. Teachers only.');
+    }
+
+    $validated = $request->validate([
+        'code' => [
+            'required',
+            'string',
+            'max:20',
+            function ($attribute, $value, $fail) {
+                $exists = \App\Models\Subject::where('code', $value)
+                    ->where('teacher_id', auth()->id())
+                    ->exists();
+                if ($exists) {
+                    $fail('You already have a subject with this code.');
+                }
+            }
+        ],
+        'title' => 'required|string|max:255',
+        'units' => 'required|numeric|min:0.5|max:6.0',
+        'assessment_types' => 'required|string',
+    ]);
+
+    // Create the subject
+    $subject = auth()->user()->subjects()->create([
+        'code' => $validated['code'],
+        'title' => $validated['title'],
+        'units' => $validated['units'],
+        'teacher_id' => auth()->id(),
+    ]);
+
+    // Create grading structure as all-in-one (encoded as custom 100/0)
+    $subject->gradingStructure()->create([
+        'type' => 'custom',
+        'midterm_weight' => 100,
+        'final_weight' => 0,
+    ]);
+
+    // Create assessment types (overall only)
+    $assessmentTypes = json_decode($validated['assessment_types'], true);
+    $order = 0;
+    if (is_array($assessmentTypes)) {
+        foreach ($assessmentTypes as $type) {
+            if (!empty($type['name']) && (float)($type['weight'] ?? 0) > 0) {
+                $subject->assessmentTypes()->create([
+                    'name' => $type['name'],
+                    // For all-in-one, persist under 'midterm' to satisfy enum constraint
+                    'term' => 'midterm',
+                    'weight' => $type['weight'],
+                    'order' => $order++,
+                ]);
+            }
+        }
+    }
+
+    return redirect()->route('subjects.allinone.index')->with('success', 'All-in-one subject created successfully!');
+})->name('subjects.allinone.store')->middleware('auth');
 
 // Class Sections routes
 Route::get('/subjects/{subject}/classes', function ($subjectId) {

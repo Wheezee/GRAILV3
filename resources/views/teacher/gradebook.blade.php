@@ -39,11 +39,20 @@
   <div>
     <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Gradebook - {{ $classSection->section }}</h2>
     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">{{ $classSection->subject->code }} - {{ $classSection->subject->title }}</p>
+    @php
+      $gs = $classSection->subject->gradingStructure ?? null;
+      $hasFinalTypes = $classSection->subject->assessmentTypes()->where('term', 'final')->exists();
+      $isAllInOne = $gs && $gs->type === 'custom' && (float)$gs->midterm_weight === 100.0 && (float)$gs->final_weight === 0.0 && !$hasFinalTypes;
+    @endphp
     <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-      @if($gradingStructure)
-        Weights: Midterm {{ $gradingStructure->midterm_weight }}% | Final {{ $gradingStructure->final_weight }}%
+      @if($isAllInOne)
+        Overall (single-term)
       @else
-        Weights: Midterm 50% | Final 50%
+        @if($gradingStructure)
+          Weights: Midterm {{ $gradingStructure->midterm_weight }}% | Final {{ $gradingStructure->final_weight }}%
+        @else
+          Weights: Midterm 50% | Final 50%
+        @endif
       @endif
     </p>
   </div>
@@ -221,8 +230,18 @@
           <div class="text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</div>
         </th>
         
-        <!-- Midterm Section -->
-        @if($midtermAssessmentTypes->count() > 0)
+        <!-- Midterm/Assessments Section -->
+        @if($isAllInOne && $midtermAssessmentTypes->count() > 0)
+          @php
+            $midtermColspan = 0;
+            foreach($midtermAssessmentTypes as $type) {
+              $midtermColspan += $assessments['midterm'][$type->id]['assessments']->count() ?: 1;
+            }
+          @endphp
+          <th colspan="{{ $midtermColspan }}" class="px-6 py-3 text-center bg-blue-50 dark:bg-blue-900/20 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
+            <div class="text-sm font-medium text-blue-900 dark:text-blue-100">Assessments</div>
+          </th>
+        @elseif(!$isAllInOne && $midtermAssessmentTypes->count() > 0)
           @php
             $midtermColspan = 0;
             foreach($midtermAssessmentTypes as $type) {
@@ -242,7 +261,7 @@
         @endif
         
         <!-- Final Section -->
-        @if($finalAssessmentTypes->count() > 0)
+        @if(!$isAllInOne && $finalAssessmentTypes->count() > 0)
           @php
             $finalColspan = 0;
             foreach($finalAssessmentTypes as $type) {
@@ -261,18 +280,20 @@
           </th>
         @endif
         
-        <th rowspan="3" class="px-6 py-3 text-center bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
-          <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Midterm Grade</div>
-        </th>
-        <th rowspan="3" class="px-6 py-3 text-center bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
-          <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Final Grade</div>
-        </th>
+        @if(!$isAllInOne)
+          <th rowspan="3" class="px-6 py-3 text-center bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
+            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Midterm Grade</div>
+          </th>
+          <th rowspan="3" class="px-6 py-3 text-center bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
+            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Final Grade</div>
+          </th>
+        @endif
         <th rowspan="3" class="px-6 py-3 text-center bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
           <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Overall Grade</div>
         </th>
       </tr>
       <tr>
-        <!-- Midterm Assessment Types -->
+        <!-- Midterm Assessment Types (also used for All-in-one) -->
         @foreach($midtermAssessmentTypes as $assessmentType)
           @php
             $assessmentCount = $assessments['midterm'][$assessmentType->id]['assessments']->count();
@@ -291,6 +312,7 @@
         @endforeach
         
         <!-- Final Assessment Types -->
+        @if(!$isAllInOne)
         @foreach($finalAssessmentTypes as $assessmentType)
           @php
             $assessmentCount = $assessments['final'][$assessmentType->id]['assessments']->count();
@@ -307,9 +329,10 @@
             </div>
           </th>
         @endforeach
+        @endif
       </tr>
       <tr>
-        <!-- Midterm Assessments -->
+        <!-- Midterm Assessments (also used for All-in-one) -->
         @foreach($midtermAssessmentTypes as $assessmentType)
           @php
             $assessmentList = $assessments['midterm'][$assessmentType->id]['assessments'];
@@ -333,6 +356,7 @@
         @endforeach
         
         <!-- Final Assessments -->
+        @if(!$isAllInOne)
         @foreach($finalAssessmentTypes as $assessmentType)
           @php
             $assessmentList = $assessments['final'][$assessmentType->id]['assessments'];
@@ -354,6 +378,7 @@
             </th>
           @endif
         @endforeach
+        @endif
       </tr>
     </thead>
     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -446,6 +471,7 @@
             @endif
           @endforeach
           
+          @if(!$isAllInOne)
           <!-- Midterm Grade -->
           <td class="px-2 sm:px-4 py-3 text-center font-semibold">
             @if($student->midterm_grade !== null)
@@ -529,6 +555,7 @@
               <span class="text-sm text-gray-500 dark:text-gray-400">--</span>
             @endif
           </td>
+          @endif
           
           <!-- Overall Grade -->
           <td class="px-2 sm:px-4 py-3 text-center font-semibold">
@@ -585,18 +612,21 @@
     <div>
       <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Grading Structure:</h4>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 bg-blue-100 dark:bg-blue-900/20 rounded"></div>
-          <span class="text-gray-700 dark:text-gray-300">
-            Midterm ({{ $gradingStructure->midterm_weight }}%)
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 bg-green-100 dark:bg-green-900/20 rounded"></div>
-          <span class="text-gray-700 dark:text-gray-300">
-            Final ({{ $gradingStructure->final_weight }}%)
-          </span>
-        </div>
+        @if($isAllInOne)
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 bg-gray-100 dark:bg-gray-900/20 rounded"></div>
+            <span class="text-gray-700 dark:text-gray-300">Overall (100%)</span>
+          </div>
+        @else
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 bg-blue-100 dark:bg-blue-900/20 rounded"></div>
+            <span class="text-gray-700 dark:text-gray-300">Midterm ({{ $gradingStructure->midterm_weight }}%)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 bg-green-100 dark:bg-green-900/20 rounded"></div>
+            <span class="text-gray-700 dark:text-gray-300">Final ({{ $gradingStructure->final_weight }}%)</span>
+          </div>
+        @endif
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-gray-100 dark:bg-gray-900/20 rounded"></div>
           <span class="text-gray-700 dark:text-gray-300">

@@ -217,7 +217,17 @@
   </ol>
 </nav>
 
+@php
+    $gs = $classSectionModel->subject->gradingStructure;
+    $hasFinalTypes = $classSectionModel->subject->assessmentTypes()->where('term', 'final')->exists();
+    $isAllInOne = $gs && $gs->type === 'custom'
+        && (float)$gs->midterm_weight === 100.0
+        && (float)$gs->final_weight === 0.0
+        && !$hasFinalTypes;
+@endphp
+
 <!-- Term Switcher Tabs -->
+@if (!$isAllInOne)
 <div class="mb-6 flex gap-2">
     @php
         $termTabs = [
@@ -238,6 +248,7 @@
         </a>
     @endforeach
 </div>
+@endif
 
 @if (session('success'))
   <div id="successMessage" class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg transform transition-all duration-500 ease-out">
