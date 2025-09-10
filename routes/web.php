@@ -178,11 +178,6 @@ Route::get('/subjects', function () {
         abort(403, 'Access denied. Teachers only.');
     }
     $subjects = auth()->user()->subjects()
-        ->whereDoesntHave('gradingStructure', function($q) {
-            $q->where('type', 'custom')
-              ->where('midterm_weight', 100)
-              ->where('final_weight', 0);
-        })
         ->when(session('academic_year'), fn($q) => $q->where('academic_year', session('academic_year')))
         ->when(session('semester'), fn($q) => $q->where('semester', session('semester')))
         ->orderBy('code')
@@ -378,7 +373,9 @@ Route::get('/subjects/all-in-one', function () {
         ->when(session('semester'), fn($q) => $q->where('semester', session('semester')))
         ->orderBy('code')
         ->get();
-    return view('teacher.subjects-allinone', compact('subjects'));
+    // If ?create=1 is present, we will trigger the modal open on page load
+    $openCreate = request()->boolean('create');
+    return view('teacher.subjects-allinone', compact('subjects', 'openCreate'));
 })->name('subjects.allinone.index')->middleware('auth');
 
 Route::get('/subjects/all-in-one/create', function () {
@@ -446,7 +443,7 @@ Route::post('/subjects/all-in-one', function (Request $request) {
         }
     }
 
-    return redirect()->route('subjects.allinone.index')->with('success', 'All-in-one subject created successfully!');
+    return redirect()->route('subjects.index')->with('success', 'All-in-one subject created successfully!');
 })->name('subjects.allinone.store')->middleware('auth');
 
 // Class Sections routes

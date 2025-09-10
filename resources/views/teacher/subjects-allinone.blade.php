@@ -327,6 +327,12 @@ document.getElementById('aoiCreateModal').addEventListener('click', function(e){
 // Close on ESC
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeAoiCreateModal(); } });
 
+// Auto-open modal when requested from main Subjects page
+document.addEventListener('DOMContentLoaded', function(){
+  const shouldOpen = {{ isset($openCreate) && $openCreate ? 'true' : 'false' }};
+  if(shouldOpen){ openAoiCreateModal(); }
+});
+
 // Stepper
 let aoiStep = 1;
 function aoiSyncStepper(){
