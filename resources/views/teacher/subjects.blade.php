@@ -223,11 +223,11 @@
   <div class="flex gap-2">
     <button onclick="createSubject()" class="mt-4 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
       <i data-lucide="plus" class="w-4 h-4"></i>
-      Add Subject
+      Add Separate Term
     </button>
     <button onclick="openAoiCreateModal()" class="mt-4 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
       <i data-lucide="plus-square" class="w-4 h-4"></i>
-      Add All-in-one Subject
+      Add Unified Term
     </button>
   </div>
 </div>
@@ -664,7 +664,7 @@
   <div class="modal-content">
     <div class="p-6">
       <div class="flex items-center justify-between mb-6">
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Create All-in-one Subject</h3>
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Create Unified Term Subject</h3>
         <button onclick="closeAoiCreateModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <i data-lucide="x" class="w-6 h-6"></i>
         </button>

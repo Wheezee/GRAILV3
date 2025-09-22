@@ -109,8 +109,11 @@
   </div>
 </div>
 
+<div class="block lg:flex lg:gap-8 lg:items-start">
+  <div class="w-full lg:flex-none min-w-0" style="flex-basis:calc(73% - 1rem);max-width:calc(73% - 1rem)">
+    <div class="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm">
 @if (count($classes) > 0)
-  <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+  <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3">
     @foreach ($classes as $class)
       <div class="relative group" data-class-id="{{ $class->id }}">
         <a href="{{ route('grading.system', ['subject' => $subject->id, 'classSection' => $class->id, 'term' => 'midterm']) }}" class="block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer">
@@ -165,6 +168,23 @@
     </button>
   </div>
 @endif
+    </div>
+  </div>
+
+  <aside class="w-full lg:flex-none mt-8 lg:mt-0 lg:self-start" style="flex-basis:25%;max-width:25%">
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm lg:sticky lg:top-24">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="calendar-range" class="w-5 h-5 text-red-600"></i>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Upcoming This Month</h3>
+        </div>
+      </div>
+      <div id="upcoming-notes-container" class="space-y-3">
+        <div class="text-sm text-gray-500 dark:text-gray-400">Loading notes…</div>
+      </div>
+    </div>
+  </aside>
+</div>
 
 <!-- Add Class Modal -->
 <div id="addClassModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
@@ -432,7 +452,7 @@ function renderSubjectCalendar(month, year) {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
-    const iso = date.toISOString().split('T')[0];
+    const iso = formatDateLocal(date);
     const hasNote = !!monthNotesIndex[iso];
 
     const day = document.createElement('div');
@@ -468,7 +488,7 @@ function updateSelectedDateLabel(iso) {
     calSelectedDateISO = null;
     return;
   }
-  const d = new Date(iso);
+  const d = parseDateLocal(iso);
   label.textContent = `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   delBtn.classList.remove('hidden');
 }
@@ -511,6 +531,52 @@ document.addEventListener('DOMContentLoaded', function() {
       renderSubjectCalendar(calSelectedMonth, calSelectedYear);
       updateSelectedDateLabel(calSelectedDateISO);
     });
+  }
+});
+
+// Date helpers to avoid UTC off-by-one
+function pad2(n){ return String(n).padStart(2,'0'); }
+function formatDateLocal(date){
+  // Build YYYY-MM-DD in local time rather than UTC
+  return `${date.getFullYear()}-${pad2(date.getMonth()+1)}-${pad2(date.getDate())}`;
+}
+function parseDateLocal(iso){
+  const [y,m,d] = iso.split('-').map(v=>parseInt(v,10));
+  return new Date(y, (m-1), d);
+}
+
+// Sidebar: load and render upcoming notes for the current month
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const container = document.getElementById('upcoming-notes-container');
+    if (!container) return;
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}`;
+    const res = await fetch(`/subjects/${subjectId}/calendar-notes?month=${ym}`, { headers: { 'Accept': 'application/json' } });
+    const all = await res.json();
+    // Show all notes in the current month (not just future)
+    const items = all
+      .filter(n => (n.text||'').trim() !== '')
+      .sort((a,b) => a.date.localeCompare(b.date))
+      .slice(0, 8);
+    container.innerHTML = '';
+    if (items.length === 0) {
+      container.innerHTML = '<div class="text-sm text-gray-500 dark:text-gray-400">No notes for this month.</div>';
+      return;
+    }
+    items.forEach(n => {
+      const d = parseDateLocal(n.date);
+      const item = document.createElement('div');
+      item.className = 'flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800';
+      item.innerHTML = `
+        <div class=\"shrink-0 mt-0.5\"><i data-lucide=\"sticky-note\" class=\"w-4 h-4 text-red-600\"></i></div>
+        <div class=\"min-w-0\">\n          <div class=\"text-xs text-gray-500 dark:text-gray-400\">${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}</div>\n          <div class=\"text-sm text-gray-900 dark:text-gray-100 truncate\">${(n.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>\n        </div>`;
+      container.appendChild(item);
+    });
+    if (window.lucide) lucide.createIcons();
+  } catch (e) {
+    const container = document.getElementById('upcoming-notes-container');
+    if (container) container.innerHTML = '<div class="text-sm text-gray-500 dark:text-gray-400">Failed to load notes.</div>';
   }
 });
 

@@ -36,6 +36,10 @@
           <i data-lucide="users" class="w-5 h-5 text-red-600 dark:text-evsu"></i>
           <span class="font-medium">Students</span>
         </a>
+        <a href="{{ url('/settings') }}" class="flex items-center space-x-3 py-3 px-4 rounded-md text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <i data-lucide="settings" class="w-5 h-5 text-red-600 dark:text-evsu"></i>
+          <span class="font-medium">Settings</span>
+        </a>
         <button onclick="confirmLogout()" class="flex items-center space-x-3 py-3 px-4 rounded-md text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition w-full text-left">
             <i data-lucide="log-out" class="w-5 h-5 text-red-600 dark:text-evsu"></i>
             <span class="font-medium">Logout</span>
@@ -60,11 +64,13 @@
           <select name="academic_year" id="aySelect" class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-100">
             @php
               $currentAy = session('academic_year');
-              $start = (int)date('Y') - 1;
-              $years = [];
-              for($i=$start; $i<=$start+4; $i++){ $years[] = $i.'-'.($i+1); }
+              $ayOptions = \App\Models\AcademicYear::orderBy('year')->pluck('year')->toArray();
+              if(empty($ayOptions)){
+                $nowY = (int)date('Y');
+                $ayOptions = [ $nowY.'-'.($nowY+1) ];
+              }
             @endphp
-            @foreach($years as $ay)
+            @foreach($ayOptions as $ay)
               <option value="{{ $ay }}" {{ $currentAy===$ay ? 'selected' : '' }}>{{ $ay }}</option>
             @endforeach
           </select>
@@ -157,3 +163,4 @@
     </script>
 </body>
 </html> 
+

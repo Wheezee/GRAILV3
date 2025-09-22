@@ -1602,6 +1602,34 @@ Route::prefix('subjects/{subject}/calendar-notes')->middleware('auth')->group(fu
     Route::delete('{date}', [\App\Http\Controllers\SubjectCalendarNoteController::class, 'destroy'])->name('subject-notes.destroy');
 });
 
+// Settings: manage Academic Years (DB-backed)
+Route::middleware('auth')->group(function () {
+    Route::get('/settings', function () {
+        $years = \App\Models\AcademicYear::orderBy('year')->pluck('year')->toArray();
+        // Ensure current AY exists by default
+        $nowYear = (int)date('Y');
+        $defaultAy = $nowYear.'-'.($nowYear+1);
+        if (!in_array($defaultAy, $years)) {
+            \App\Models\AcademicYear::firstOrCreate(['year' => $defaultAy]);
+            $years[] = $defaultAy;
+            sort($years);
+        }
+        return view('settings.index', ['years' => $years]);
+    })->name('settings.index');
+
+    Route::post('/settings/ay', function (\Illuminate\Http\Request $request) {
+        $request->validate(['year' => ['required','regex:/^\d{4}-\d{4}$/']]);
+        \App\Models\AcademicYear::firstOrCreate(['year' => $request->year]);
+        return redirect()->route('settings.index')->with('success', 'Academic year added.');
+    })->name('settings.ay.add');
+
+    Route::delete('/settings/ay', function (\Illuminate\Http\Request $request) {
+        $request->validate(['year' => ['required','regex:/^\d{4}-\d{4}$/']]);
+        \App\Models\AcademicYear::where('year', $request->year)->delete();
+        return redirect()->route('settings.index')->with('success', 'Academic year removed.');
+    })->name('settings.ay.delete');
+});
+
 // Student assessment routes (no authentication required)
 Route::prefix('assessment')->name('student.assessment.')->group(function () {
     Route::get('{unique_url}/access', [\App\Http\Controllers\StudentAssessmentController::class, 'showAccessForm'])->name('access');
